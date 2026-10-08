@@ -1,55 +1,77 @@
 # Arquitectura Inicial del Sistema
 
-## Diagrama de Arquitectura
+## Estilo arquitectónico
 
-El siguiente diagrama representa la arquitectura del **Sistema Web para la Gestión y Publicación de Prácticas Preprofesionales (UNSCH)**, estructurado en capas siguiendo el modelo de referencia analizado:
+El sistema se propone como un **monolito modular**: el backend se construye y despliega como una sola aplicación, pero su código se divide en módulos de negocio con responsabilidades e interfaces claras. La organización interna sigue el enfoque de Clean Architecture.
+
+## Diagrama de arquitectura
+
+El siguiente diagrama representa la arquitectura propuesta para el **Sistema Web para la Gestión y Publicación de Prácticas Preprofesionales (UNSCH)**.
 
 ```mermaid
 flowchart TD
-    %% Estilos
-    classDef capa fill:#1e1e1e,stroke:#333,stroke-width:2px,color:#fff;
-    classDef nodo fill:#2d2d2d,stroke:#fff,stroke-width:1px,color:#fff;
-    classDef ext fill:#2d2d2d,stroke:#fff,stroke-width:1px,color:#fff,stroke-dasharray: 5 5;
-
-    %% Nodos principales
-    subgraph Actores ["ACTORES"]
-        direction LR
-        A1([Estudiante]):::nodo
-        A2([Empresa]):::nodo
-        A3([Coordinador / Admin]):::nodo
+    subgraph Actores["ACTORES"]
+        A1([Estudiante])
+        A2([Empresa])
+        A3([Coordinador / Administrador])
     end
 
-    subgraph Presentacion ["PRESENTACIÓN"]
-        P1[Portal Web React / API Gateway]:::nodo
+    subgraph Presentacion["PRESENTACIÓN"]
+        WEB["Portal web React"]
+        API["API REST / Controladores"]
+        WEB --> API
     end
 
-    subgraph Negocio ["LÓGICA DE NEGOCIO (Microservicios)"]
-        direction LR
-        M1[Autenticación]:::nodo
-        M2[Ofertas]:::nodo
-        M3[Postulaciones]:::nodo
-        M4[Convenios]:::nodo
-        M5[Notificaciones]:::nodo
+    subgraph Backend["BACKEND: UNA APLICACIÓN DESPLEGABLE"]
+        subgraph Modulos["MÓDULOS DE NEGOCIO"]
+            M1["Usuarios y Autenticación"]
+            M2["Ofertas"]
+            M3["Postulaciones"]
+            M4["Convenios"]
+            M5["Notificaciones"]
+            M6["Integración Académica"]
+        end
+        subgraph Capas["CAPAS INTERNAS: CLEAN ARCHITECTURE"]
+            C1["Dominio"]
+            C2["Aplicación / Casos de uso"]
+            C3["Infraestructura"]
+        end
     end
 
-    subgraph Datos ["DATOS"]
-        direction LR
-        D1[(PostgreSQL)]:::nodo
-        D2[(Redis)]:::nodo
-        D3[(RabbitMQ)]:::nodo
-    end
+    DB[(PostgreSQL)]
+    SIGA["Sistema académico SIGA"]
+    MAIL["Proveedor de correo / SMS"]
+    REDIS[("Redis opcional")]
+    MQ[("RabbitMQ opcional")]
 
-    subgraph SistemasExternos ["SISTEMAS EXTERNOS"]
-        direction LR
-        E1[Core Académico - SIGA]:::ext
-        E2[Servicio de Correo/SMS]:::ext
-    end
+    A1 --> WEB
+    A2 --> WEB
+    A3 --> WEB
+    API --> Modulos
+    Modulos --> Capas
+    C3 --> DB
+    M6 -. integración autorizada .-> SIGA
+    M5 -. envío de avisos .-> MAIL
+    M2 -. caché opcional .-> REDIS
+    M5 -. tareas asíncronas opcionales .-> MQ
+```
 
-    %% Relaciones
-    Actores -->|Interactúan| Presentacion
-    Presentacion -->|Enruta peticiones| Negocio
-    Negocio -->|Lectura / Escritura| Datos
-    Negocio -.->|Integraciones| SistemasExternos
+## Responsabilidades principales
 
-    %% Aplicar estilos a subgrafos
-    class Actores,Presentacion,Negocio,Datos,SistemasExternos capa;
+| Módulo | Responsabilidad |
+|---|---|
+| Usuarios y Autenticación | Identidad, acceso y permisos por rol. |
+| Ofertas | Registro, publicación, edición, cierre y búsqueda de ofertas. |
+| Postulaciones | Registro, validación, prevención de duplicados y seguimiento. |
+| Convenios | Seguimiento de convenios de prácticas. |
+| Notificaciones | Avisos sobre ofertas y cambios de estado. |
+| Integración Académica | Consultar requisitos académicos a través de un adaptador, si se habilita el acceso a SIGA. |
+
+## Consideraciones de diseño
+
+- Los módulos forman parte de la misma aplicación y no son microservicios desplegados por separado.
+- La base de datos PostgreSQL es la persistencia principal propuesta para la primera versión.
+- Las reglas de negocio deben estar en el dominio y los casos de uso, no dentro de los controladores HTTP.
+- Redis y RabbitMQ son opcionales; se incorporarán solo si los requisitos y las mediciones justifican su coste.
+- La integración real con SIGA depende de los mecanismos de acceso que autorice la universidad.
+- El diagrama es una propuesta conceptual. Debe actualizarse cuando se confirme la estructura real del código y la tecnología del backend.
