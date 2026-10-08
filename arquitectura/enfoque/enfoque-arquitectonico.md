@@ -2,107 +2,92 @@
 
 ## 1. Propósito
 
-Definir cómo se organizan las responsabilidades y dependencias internas de los servicios del **Sistema Web para la Gestión y Publicación de Prácticas Preprofesionales de la UNSCH**. Este enfoque complementa el estilo global de microservicios descrito en `arquitectura/estilo-arquitectonico.md`; no lo reemplaza.
+Definir cómo se organizan las responsabilidades y dependencias internas del **monolito modular** del Sistema Web para la Gestión y Publicación de Prácticas Preprofesionales de la UNSCH. Este enfoque complementa el estilo global descrito en `arquitectura/estilo-arquitectonico.md`: una sola aplicación desplegable organizada en módulos de negocio.
 
 ## 2. Enfoque seleccionado
 
 **Clean Architecture (Arquitectura Limpia)**, con las dependencias del código dirigidas hacia el núcleo del negocio. Las reglas de dominio y los casos de uso no deben depender de React, del framework del backend, de PostgreSQL, Redis, RabbitMQ ni de la API externa de SIGA.
 
-## 3. Capas y responsabilidades
+## 3. Módulos de negocio
+
+La aplicación se organizará inicialmente en módulos lógicos como:
+
+- **Usuarios y Autenticación:** identidad, acceso y roles.
+- **Ofertas:** publicación, edición, cierre y búsqueda de oportunidades.
+- **Postulaciones:** registro, validación de requisitos, prevención de duplicados y seguimiento.
+- **Convenios:** seguimiento del ciclo de vida de los convenios.
+- **Notificaciones:** preparación y envío de avisos.
+- **Integración Académica:** acceso a los datos de elegibilidad mediante un adaptador autorizado.
+
+Estos módulos forman parte del mismo backend desplegable. Cada uno debe exponer una interfaz interna clara y evitar acceder directamente a las clases o tablas internas de los demás módulos. Los nombres se ajustarán a la implementación real.
+
+## 4. Capas y responsabilidades
 
 | Capa | Responsabilidad | Ejemplos aplicados al sistema |
 |---|---|---|
-| **Dominio** | Entidades, objetos de valor, invariantes y reglas esenciales del negocio. No depende de frameworks ni de infraestructura. | Oferta, Postulación, Convenio; reglas como impedir postulaciones duplicadas y validar transiciones de estado. |
-| **Aplicación** | Casos de uso, coordinación del flujo y puertos/interfaces requeridos por el negocio. | PublicarOferta, BuscarOfertas, RegistrarPostulación, ConsultarEstadoPostulación, ActualizarEstadoConvenio y GenerarNotificación. |
-| **Presentación** | Adaptadores de entrada: controladores HTTP, validación de solicitudes y respuestas DTO. En el cliente, la interfaz React consume la API. | Endpoints REST para ofertas, postulaciones y convenios; formularios y vistas del portal web. |
-| **Infraestructura** | Implementaciones técnicas de los puertos: persistencia, mensajería, servicios externos y configuración del framework. | Repositorios PostgreSQL, adaptador de SIGA, cliente de correo/SMS, adaptador Redis o publicación en RabbitMQ. |
+| **Dominio** | Entidades, objetos de valor, invariantes y reglas esenciales del negocio. | Oferta, Postulación, Convenio; impedir postulaciones duplicadas y validar transiciones de estado. |
+| **Aplicación** | Casos de uso, coordinación del flujo y puertos/interfaces requeridos por el negocio. | PublicarOferta, BuscarOfertas, RegistrarPostulacion, ConsultarEstadoPostulacion, ActualizarEstadoConvenio y GenerarNotificacion. |
+| **Presentación** | Adaptadores de entrada: controladores HTTP, validación de solicitudes y respuestas DTO. El cliente React consume la API. | Endpoints REST para ofertas, postulaciones y convenios; formularios y vistas del portal web. |
+| **Infraestructura** | Implementaciones técnicas de los puertos: persistencia, integración externa, mensajería y configuración del framework. | Repositorios PostgreSQL, adaptador de SIGA, cliente de correo/SMS y, si se justifica, adaptadores Redis o RabbitMQ. |
 
-Los nombres anteriores son una organización propuesta. Deben ajustarse a los nombres reales de carpetas, clases y servicios cuando se implemente cada módulo.
-
-## 4. Regla de dependencias
+## 5. Regla de dependencias
 
 1. El dominio no importa clases de las demás capas.
-2. Aplicación puede utilizar el dominio y define interfaces para las capacidades externas que necesita.
+2. Aplicación utiliza el dominio y define interfaces para las capacidades externas que necesita.
 3. Presentación invoca casos de uso; no implementa reglas centrales del negocio.
 4. Infraestructura implementa las interfaces definidas por el núcleo y puede depender de librerías técnicas.
-5. El ensamblaje de dependencias se realiza en el punto de composición de la aplicación, sin introducir referencias de infraestructura dentro del dominio.
+5. Los módulos interactúan mediante interfaces o servicios de aplicación explícitos, no mediante acceso indiscriminado a sus clases internas.
+6. El ensamblaje de dependencias se realiza en el punto de composición de la aplicación.
 
 Por ejemplo, el caso de uso `RegistrarPostulacion` debería utilizar una interfaz `PostulacionRepository`. La implementación concreta que persiste en PostgreSQL se ubica en infraestructura. Así se puede probar la regla de evitar duplicados usando un repositorio simulado, sin levantar una base de datos real.
 
-## 5. Diagrama de Clean Architecture
+## 6. Diagrama de Clean Architecture
 
 ```mermaid
 flowchart TB
-    subgraph EXT["Adaptadores externos"]
-        UI["Portal React / Cliente HTTP"]
-        DB["PostgreSQL / Redis"]
-        EXTAPI["SIGA / Correo-SMS / RabbitMQ"]
-    end
-
-    subgraph PRES["Presentación"]
-        CTRL["Controladores REST"]
-        DTO["DTO y validación de entrada"]
-    end
-
-    subgraph APP["Aplicación"]
-        UC["Casos de uso"]
-        PORT["Puertos e interfaces"]
-    end
-
-    subgraph DOM["Dominio"]
-        ENT["Entidades y objetos de valor"]
-        RULES["Reglas e invariantes del negocio"]
-    end
-
-    subgraph INF["Infraestructura"]
-        REPO["Implementaciones de repositorios"]
-        ADAPT["Adaptadores de sistemas externos"]
-        CONFIG["Configuración y composición"]
-    end
-
-    UI --> CTRL
-    CTRL --> DTO
-    DTO --> UC
-    UC --> ENT
-    ENT --> RULES
-    UC --> PORT
-    REPO -. implementa .-> PORT
-    ADAPT -. implementa .-> PORT
-    DB --> REPO
-    EXTAPI --> ADAPT
-    CONFIG -. ensambla .-> CTRL
+    UI["Portal React / Cliente HTTP"] --> CTRL["Presentación: controladores REST y DTO"]
+    CTRL --> UC["Aplicación: casos de uso"]
+    UC --> ENT["Dominio: entidades y reglas de negocio"]
+    UC --> PORT["Puertos e interfaces"]
+    REPO["Infraestructura: repositorios PostgreSQL"] -. implementa .-> PORT
+    ADAPT["Adaptadores SIGA / correo-SMS"] -. implementa .-> PORT
+    DB[(PostgreSQL)] --> REPO
+    EXTAPI["SIGA / proveedor de correo-SMS"] --> ADAPT
+    CONFIG["Composición y configuración"] -. ensambla .-> CTRL
     CONFIG -. ensambla .-> REPO
     CONFIG -. ensambla .-> ADAPT
 ```
 
-El diagrama es conceptual. Las flechas de flujo muestran la interacción, mientras que las relaciones punteadas indican que los adaptadores concretos implementan puertos del núcleo o que la configuración conecta las implementaciones. La regla esencial es que el código del dominio y de aplicación no importe infraestructura.
+El diagrama es conceptual y muestra las capas internas de la aplicación. La regla esencial es que el dominio y los casos de uso no importen infraestructura.
 
-## 6. Ejemplo de aplicación: registrar una postulación
+## 7. Ejemplo: registrar una postulación
 
 1. El estudiante envía la solicitud desde el portal web.
 2. El controlador REST valida el formato de entrada y llama al caso de uso.
-3. El caso de uso comprueba las reglas del dominio y consulta los puertos necesarios.
-4. Los adaptadores de infraestructura consultan la elegibilidad académica a través del puerto de integración y persisten la postulación mediante el repositorio.
-5. El caso de uso devuelve un resultado que el adaptador de presentación transforma en una respuesta HTTP.
+3. El caso de uso verifica las reglas del dominio y consulta los puertos necesarios.
+4. El adaptador de integración consulta la elegibilidad académica si existe acceso autorizado a SIGA.
+5. El repositorio persiste la postulación en PostgreSQL.
+6. El controlador transforma el resultado en una respuesta HTTP.
 
 Las comprobaciones críticas —por ejemplo, no postular dos veces a la misma oferta— deben protegerse también en la persistencia mediante una restricción adecuada o una operación transaccional, para evitar duplicados ante solicitudes concurrentes.
 
-## 7. Beneficios para DA06 — Mantenibilidad
+## 8. Beneficios para DA06 — Mantenibilidad
 
 - **Cambios localizados:** modificar el proveedor de correo o el acceso a datos no obliga a reescribir las reglas de postulación.
 - **Pruebas unitarias:** los casos de uso se prueban con dobles de prueba para repositorios y servicios externos.
 - **Menor acoplamiento:** la lógica del negocio no conoce detalles de HTTP, SQL ni SDK externos.
 - **Evolución controlada:** cada cambio puede asociarse con un requisito, un caso de uso y una prueba.
-- **Revisión más sencilla:** los límites entre capas permiten detectar dependencias indebidas durante las revisiones de código.
+- **Revisión más sencilla:** los límites entre capas y módulos permiten detectar dependencias indebidas.
 
-## 8. Criterios de verificación
+## 9. Criterios de verificación
 
 - El dominio no importa frameworks, controladores, ORM ni clientes externos.
 - Los casos de uso se pueden probar sin conexión real a PostgreSQL, SIGA o servicios de mensajería.
 - Los contratos de repositorios e integraciones están definidos en el núcleo y sus implementaciones en infraestructura.
 - Los controladores no contienen reglas de negocio centrales.
-- Las pruebas cubren reglas de elegibilidad, duplicidad de postulaciones y transiciones de estado.
+- Las pruebas cubren elegibilidad, duplicidad de postulaciones y transiciones de estado.
+- Los módulos no acceden directamente a detalles internos de otros módulos.
 
-## 9. Alcance de esta propuesta
+## 10. Alcance de esta propuesta
 
-Este documento define una guía de organización arquitectónica, no afirma que las capas ya estén implementadas en el código. La aplicación efectiva debe realizarse gradualmente y contrastarse con la estructura real de cada servicio.
+Este documento define una guía de organización arquitectónica, no afirma que las capas ya estén implementadas en el código. La aplicación efectiva debe realizarse gradualmente y contrastarse con la estructura real del backend.
