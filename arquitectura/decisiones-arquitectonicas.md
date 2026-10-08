@@ -8,7 +8,7 @@ Este documento registra las decisiones principales para el Sistema Web para la G
 
 - **Estado:** Propuesto.
 - **Contexto:** El sistema reúne capacidades diferentes: autenticación, publicación de ofertas, postulaciones, convenios y notificaciones. Se prevé crecimiento de usuarios y cambios evolutivos.
-- **Drivers relacionados:** DA01 — Centralización; DA04 — Evolución modular; DA06 — Mantenibilidad. Atributos AC01 y AC05.
+- **Drivers relacionados:** DA01 — Centralización; DA04 — Evolución modular; DA05 — Comunicación estandarizada mediante API REST; DA06 — Mantenibilidad. Atributos AC01 y AC05.
 - **Decisión:** Mantener microservicios como estilo objetivo documentado, con comunicación externa mediante API REST y un API Gateway como punto de entrada.
 - **Alternativas consideradas:** monolito tradicional, monolito modular y microservicios.
 - **Justificación:** los servicios pueden delimitar capacidades y contratos, y eventualmente escalarse de forma independiente.
@@ -68,7 +68,7 @@ Este documento registra las decisiones principales para el Sistema Web para la G
 
 | Decisión | Drivers principales | Resultado esperado |
 |---|---|---|
-| ADR-001 Microservicios como estilo objetivo | DA01, DA04, DA06 | Capacidades del negocio con límites y contratos claros. |
+| ADR-001 Microservicios como estilo objetivo | DA01, DA04, DA05, DA06 | Capacidades del negocio con límites y contratos claros. |
 | ADR-002 Clean Architecture | DA06 | Dependencias dirigidas hacia dominio y aplicación. |
 | ADR-003 Redis/RabbitMQ condicionados | DA02, DA06 | Optimización basada en mediciones y tareas asíncronas justificadas. |
 | ADR-004 Adaptador SIGA | DA03, DA06 | Integración externa aislada y reemplazable. |
