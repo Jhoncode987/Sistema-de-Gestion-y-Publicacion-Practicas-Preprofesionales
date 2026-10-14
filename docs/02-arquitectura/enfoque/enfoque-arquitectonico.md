@@ -2,7 +2,7 @@
 
 ## 1. Propósito
 
-Definir cómo se organizan las responsabilidades y dependencias internas del **monolito modular** del Sistema Web para la Gestión y Publicación de Prácticas Preprofesionales de la UNSCH. Este enfoque complementa el estilo global descrito en `arquitectura/estilo-arquitectonico.md`: una sola aplicación desplegable organizada en módulos de negocio.
+Definir cómo se organizan las responsabilidades y dependencias internas del **monolito modular** del Sistema Web para la Gestión y Publicación de Prácticas Preprofesionales de la UNSCH. Este enfoque complementa el estilo global descrito en `../estilo-arquitectonico.md`: una sola aplicación desplegable organizada en módulos de negocio.
 
 ## 2. Enfoque seleccionado
 
