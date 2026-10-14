@@ -1,5 +1,7 @@
 # Atributos de Calidad
 
+Los escenarios completos y medibles se encuentran en [08-escenarios-atributos-calidad.md](08-escenarios-atributos-calidad.md).
+
 | ID | Atributo de Calidad | Escenario de Calidad |
 |---|---|---|
 | **AC01** | Escalabilidad y modularidad | El backend se organizará como un monolito modular, con módulos de Usuarios y Autenticación, Ofertas, Postulaciones, Convenios, Notificaciones e Integración Académica. Los límites internos facilitarán el mantenimiento y permitirán escalar inicialmente la aplicación completa. La extracción futura de un módulo a un servicio independiente requerirá una justificación técnica específica. |
