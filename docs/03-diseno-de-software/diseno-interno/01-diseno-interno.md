@@ -6,7 +6,7 @@
 
 Este documento concreta cómo se organizará internamente el **Sistema Web para la Gestión y Publicación de Prácticas Preprofesionales de la UNSCH**, con foco en el módulo de **Postulaciones**. Se adopta un monolito modular con API REST y Clean Architecture: una sola aplicación desplegable, dividida en módulos de negocio con responsabilidades claras.
 
-El diseño se limita al backend y a sus interacciones principales. React, PostgreSQL, JWT, el adaptador de SIGA y el proveedor de correo son propuestas o decisiones sujetas a validación; no se presentan como integraciones ya desplegadas. La integración académica depende de autorización institucional (RC02, DA03). La nube queda fuera del alcance de este sprint.
+El diseño se limita al backend y a sus interacciones principales. React, PostgreSQL, JWT, el adaptador de SIGA y las notificaciones internas son propuestas o decisiones sujetas a validación; no se presentan como integraciones ya desplegadas. La integración académica depende de autorización institucional (RC02, DA03). La nube queda fuera del alcance de este sprint.
 
 ## 2. Capas y responsabilidades
 
@@ -23,7 +23,7 @@ El diseño se limita al backend y a sus interacciones principales. React, Postgr
 
 | Módulo lógico | Responsabilidad principal | Requisitos relacionados |
 |---|---|---|
-| Usuarios y Autenticación | Identidad, roles y permisos para estudiante, empresa, coordinador y administrador. | RF08, RF09; AC03 |
+| Usuarios y Autenticación | Identidad, roles y permisos para estudiante, empresa, coordinador y administrador. | RF08, RF09; AC02 |
 | Ofertas | Registro/validación de empresas y publicación, edición, cierre y consulta de ofertas. | RF01, RF02, RF03; HU-01 a HU-04 |
 | Postulaciones | Validar elegibilidad, evitar duplicados y permitir consultar estados. | RF04, RF05, RF06; HU-05, HU-06 |
 | Convenios | Seguimiento de estados del convenio y de la práctica. | RF06, RF10; HU-06 |
@@ -31,7 +31,7 @@ El diseño se limita al backend y a sus interacciones principales. React, Postgr
 | Integración Académica | Consultar datos de elegibilidad a través de un contrato interno. | RF04, RC02, DA03 |
 | Reportes y Auditoría | Registrar acciones administrativas y preparar reportes por periodo/carrera. | RF09, RF10 |
 
-Los módulos son límites lógicos dentro del mismo backend; no son microservicios independientes (AC01, DA04). Las operaciones entre módulos deben utilizar interfaces o servicios de aplicación definidos, evitando acceder directamente a sus estructuras internas.
+Los módulos son límites lógicos dentro del mismo backend; no son microservicios independientes (AC03, DA04). Las operaciones entre módulos deben utilizar interfaces o servicios de aplicación definidos, evitando acceder directamente a sus estructuras internas.
 
 ## 4. Diseño interno del módulo Postulaciones
 
@@ -43,11 +43,11 @@ Los módulos son límites lógicos dentro del mismo backend; no son microservici
 | RegistrarPostulacion | Coordinar consulta de oferta, validación de elegibilidad, comprobación de duplicados y registro. | RF04, RF05, DA04, DA06 |
 | ConsultarPostulaciones | Obtener las postulaciones del estudiante autenticado o las que el coordinador tenga permiso de supervisar. | RF06, RF08 |
 | CambiarEstadoPostulacion | Validar que el actor tenga permiso y que el cambio de estado sea válido. | RF06, RF08, RF09 |
-| Postulacion | Entidad de dominio que representa la postulación y protege las transiciones de estado válidas. | RF05, RF06, AC05 |
-| OfertaRepository (puerto) | Definir operaciones de consulta de ofertas necesarias para el caso de uso. | RF02–RF04, DA06 |
+| Postulacion | Entidad de dominio que representa la postulación y protege las transiciones de estado válidas. | RF05, RF06, AC03 |
+| ConsultaOfertas (puerto) | Definir operaciones de consulta de ofertas necesarias para el caso de uso. | RF02–RF04, DA06 |
 | PostulacionRepository (puerto) | Definir operaciones para comprobar y registrar una postulación y consultar su estado. | RF05, RF06, DA06 |
 | VerificadorElegibilidad (puerto) | Abstraer la validación de créditos/ciclo u otros criterios académicos definidos para una oferta. | RF04, RC02, DA03 |
-| Adaptadores de persistencia | Implementar los puertos usando la base de datos seleccionada. | RF04–RF06, AC05 |
+| Adaptadores de persistencia | Implementar los puertos usando la base de datos seleccionada. | RF04–RF06, AC03 |
 | Adaptador académico | Traducir el contrato interno a la interfaz de SIGA, si la universidad autoriza el acceso. | RF04, RC02, DA03 |
 
 ### 4.2 Entidades y conceptos del dominio
@@ -75,10 +75,10 @@ Los campos son conceptuales; el modelo definitivo deberá validarse con las hist
 
 | Puerto / interfaz propuesta | Operaciones conceptuales | Por qué se define |
 |---|---|---|
-| OfertaRepository | buscarPorId(ofertaId) | El caso de uso consulta la oferta sin conocer el motor de base de datos. |
+| ConsultaOfertas | buscarPorId(ofertaId) | El caso de uso consulta la oferta sin conocer el motor de base de datos. |
 | PostulacionRepository | existeParaEstudianteYOferta(estudianteId, ofertaId), guardar(postulacion), listarPorEstudiante(estudianteId) | Separa reglas de aplicación de la persistencia y facilita pruebas. |
 | VerificadorElegibilidad | verificar(estudianteId, oferta) | Evita que las reglas del negocio dependan del cliente o formato de respuesta de SIGA. |
-| ServicioNotificaciones | notificarCambioEstado(...), notificarNuevaOferta(...) | Permite cambiar el proveedor de correo sin modificar los casos de uso. |
+| ServicioNotificaciones | notificarCambioEstado(...), notificarNuevaOferta(...) | Registra avisos internos mediante un contrato sin acoplar los casos de uso a la persistencia. |
 | AuditoriaRepository | registrar(actor, accion, recurso, fecha) | Facilita la trazabilidad de acciones administrativas sensibles. |
 
 Los nombres de métodos son ilustrativos. Los contratos definitivos deben especificar errores, validaciones, permisos y resultados esperados.
@@ -92,7 +92,7 @@ sequenceDiagram
     actor Estudiante
     participant API as PostulacionesController
     participant UC as RegistrarPostulacion
-    participant OR as OfertaRepository
+    participant OR as ConsultaOfertas
     participant VE as VerificadorElegibilidad
     participant PR as PostulacionRepository
     participant DB as Base de datos
@@ -136,20 +136,20 @@ sequenceDiagram
         UC-->>API: publicación no permitida
         API-->>Empresa: Respuesta de rechazo
     else Empresa validada
-        UC->>Repo: guardar oferta
+        UC->>Repo: guardar oferta pendiente_revision
         Repo-->>UC: oferta registrada
         UC->>Audit: registrar acción relevante
-        UC->>Notif: solicitar aviso, si aplica
+        UC->>Notif: avisar revisión pendiente al coordinador
         UC-->>API: oferta registrada
         API-->>Empresa: Respuesta exitosa
     end
 ~~~
 
-Este flujo es conceptual: la validación de la empresa por el coordinador y la publicación por la empresa deben modelarse como operaciones separadas en la implementación para evitar que una empresa apruebe su propio registro (RF01, RF08, RF09). El servicio de notificaciones es una abstracción; no se ha elegido proveedor.
+Este flujo es conceptual: la validación de la empresa por el coordinador y la publicación por la empresa deben modelarse como operaciones separadas en la implementación para evitar que una empresa apruebe su propio registro (RF01, RF08, RF09). El servicio de notificaciones es una abstracción interna con persistencia en PostgreSQL; no requiere proveedor de correo.
 
 ## 7. Seguridad y autorización
 
-- **Autenticación:** se propone autenticar a los usuarios antes de permitir operaciones protegidas. El uso de JWT es una propuesta descrita en AC03, no una implementación confirmada.
+- **Autenticación:** se propone autenticar a los usuarios antes de permitir operaciones protegidas. El uso de JWT es una propuesta descrita en AC02, no una implementación confirmada.
 - **Autorización por rol y propiedad:** el servidor debe validar permisos en cada operación. La interfaz web no es una frontera de seguridad.
 - **Estudiantes:** solo pueden consultar sus datos y registrar postulaciones en su nombre.
 - **Empresas:** solo pueden administrar su propio perfil y sus ofertas, dentro de los estados y permisos habilitados.
@@ -160,7 +160,7 @@ Este flujo es conceptual: la validación de la empresa por el coordinador y la p
 - **Auditoría:** registrar actor, acción, recurso afectado, fecha y resultado relevante sin guardar contraseñas, tokens ni secretos (RF09).
 - **Errores:** evitar que respuestas HTTP filtren credenciales, datos personales innecesarios o detalles internos de infraestructura.
 
-Trazabilidad principal: RF08, RF09, AC03, RC02 y DA03.
+Trazabilidad principal: RF08, RF09, AC02, RC02 y DA03.
 
 ## 8. Principios y patrones de diseño
 
@@ -170,32 +170,32 @@ Trazabilidad principal: RF08, RF09, AC03, RC02 y DA03.
 - **Inversión de dependencias:** aplicación depende de puertos internos, no de implementaciones concretas de base de datos o servicios externos.
 - **Separación de responsabilidades:** cada módulo expone contratos acotados y evita modificar datos internos de otro módulo directamente.
 - **Diseño para pruebas:** los casos de uso se prueban con implementaciones simuladas de repositorios y servicios.
-- **Evitar sobreingeniería:** no introducir microservicios, Redis, RabbitMQ ni patrones adicionales sin una necesidad demostrable (AC01, AC02, DA02, DA04, DA06).
+- **Evitar sobreingeniería:** no introducir microservicios, Redis, RabbitMQ ni patrones adicionales sin una necesidad demostrable (AC03, AC01, DA02, DA04, DA06).
 
 ### Patrones aplicables
 
 | Patrón | Aplicación prevista | Beneficio / precaución |
 |---|---|---|
 | Repository | Puertos para consultar y guardar ofertas y postulaciones. | Aísla persistencia; no debe convertirse en una capa genérica sin propósito. |
-| Adapter | Adaptador académico para traducir el contrato interno a SIGA; adaptadores para persistencia y correo. | Reduce acoplamiento con servicios externos. SIGA solo se implementa con autorización. |
+| Adapter | Adaptador académico para traducir el contrato interno a SIGA; adaptadores para persistencia y avisos internos. | Reduce acoplamiento con detalles técnicos. SIGA solo se implementa con autorización. |
 | DTO | Objetos específicos para solicitudes y respuestas HTTP. | Evita exponer entidades internas y permite controlar datos transferidos. |
 | Strategy (opcional) | Si se confirman varios métodos de validación de elegibilidad o reglas variables por convocatoria. | Incorporarlo solo si hay variaciones reales; no se necesita anticipar todas las posibilidades. |
 | Inyección de dependencias | Conectar casos de uso con puertos y adaptadores. | Facilita sustitución de dependencias y pruebas. |
 
-No se propone Decorator para caché ni Observer/RabbitMQ como parte obligatoria del diseño base. La asincronía y el caché se evaluarán mediante mediciones (AC02, DA02).
+El diseño base utiliza PostgreSQL como única persistencia y no incluye caché externa ni mensajería. Las mediciones se realizan con 20 y 25 usuarios simultáneos (AC01, DA02).
 
 ## 9. Estrategia de pruebas
 
 | Tipo de prueba | Qué verificar | Requisitos / calidad |
 |---|---|---|
-| Unitarias de dominio | Transiciones de estado válidas, reglas de oferta y comportamiento de Postulacion. | RF02, RF05, RF06; AC05 |
-| Unitarias de aplicación | Elegibilidad, duplicados, permisos requeridos y errores usando puertos simulados. | RF04–RF06, RF08; AC05 |
-| Integración de persistencia | Guardado/consulta, transacciones y restricción única estudiante–oferta. | RF05, AC03, AC05 |
+| Unitarias de dominio | Transiciones de estado válidas, reglas de oferta y comportamiento de Postulacion. | RF02, RF05, RF06; AC03 |
+| Unitarias de aplicación | Elegibilidad, duplicados, permisos requeridos y errores usando puertos simulados. | RF04–RF06, RF08; AC03 |
+| Integración de persistencia | Guardado/consulta, transacciones y restricción única estudiante–oferta. | RF05, AC02, AC03 |
 | Contrato de integración | Traducción de respuestas, errores y tiempos de espera del adaptador académico. | RF04, RC02, DA03 |
-| Seguridad | Acceso denegado por rol incorrecto, intento de consultar postulaciones ajenas y protección de endpoints. | RF08, RF09, AC03 |
-| Integración de notificaciones | Solicitud de avisos por nuevos anuncios y cambios de estado; manejo de fallos del proveedor. | RF07, AC02 |
-| Rendimiento | Medir latencia y errores de búsqueda y postulación bajo la carga acordada. | AC02 y escenarios de calidad |
-| Regresión de módulos | Cambios locales no rompen contratos de otros módulos. | AC01, AC05, DA04, DA06 |
+| Seguridad | Acceso denegado por rol incorrecto, intento de consultar postulaciones ajenas y protección de endpoints. | RF08, RF09, AC02 |
+| Integración de notificaciones | Solicitud de avisos por nuevos anuncios y cambios de estado; manejo de errores de persistencia. | RF07, AC01 |
+| Rendimiento | Medir latencia y errores de búsqueda y postulación bajo la carga acordada. | AC01 y escenarios de calidad |
+| Regresión de módulos | Cambios locales no rompen contratos de otros módulos. | AC03, DA04, DA06 |
 
 Los umbrales de rendimiento deben tomarse de 08-escenarios-atributos-calidad.md y tratarse como objetivos de prueba, no como resultados ya alcanzados. El documento de diseño no afirma que estas pruebas se hayan ejecutado.
 
@@ -204,14 +204,14 @@ Los umbrales de rendimiento deben tomarse de 08-escenarios-atributos-calidad.md 
 | Decisión o elemento | Origen que la justifica |
 |---|---|
 | Portal web y API REST | DA01, DA05; RF01–RF10 |
-| Monolito modular y módulos de negocio | AC01, DA04 |
-| Clean Architecture y puertos/adaptadores | AC05, DA06 |
-| Control de roles y propiedad de los datos | RF08, AC03 |
+| Monolito modular y módulos de negocio | AC03, DA04 |
+| Clean Architecture y puertos/adaptadores | AC03, DA06 |
+| Control de roles y propiedad de los datos | RF08, AC02 |
 | Registro de auditoría | RF09 |
 | Verificación académica mediante adaptador | RF04, RC02, DA03 |
 | Prevención de postulación duplicada | RF05 |
-| Notificaciones desacopladas | RF07, AC02 |
-| Medición antes de añadir caché o mensajería | AC02, DA02 |
+| Notificaciones desacopladas | RF07, AC01 |
+| Medición antes de añadir caché o mensajería | AC01, DA02 |
 | Despliegue en infraestructura universitaria o nube académica de bajo costo como posibilidad | RC04; el despliegue en nube se documentará posteriormente |
 
 ## 11. Supuestos, límites y pendientes
@@ -219,8 +219,8 @@ Los umbrales de rendimiento deben tomarse de 08-escenarios-atributos-calidad.md 
 1. Este documento define un diseño propuesto, no código ejecutable ni evidencia de funcionalidades terminadas.
 2. React y PostgreSQL son tecnologías propuestas en la documentación de arquitectura; se deben confirmar contra la implementación antes de presentarlas como stack definitivo.
 3. El acceso a SIGA requiere autorización institucional. Sin ella, se debe acordar una alternativa operativa para validar elegibilidad; no se debe simular una validación exitosa.
-4. El proveedor de correo no está seleccionado.
-5. Redis, RabbitMQ y microservicios no forman parte de la solución base.
+4. Los avisos de la versión base son internos y se almacenan en PostgreSQL; no se requiere proveedor de correo.
+5. PostgreSQL es la única base y los módulos se ejecutan dentro del backend monolítico.
 6. La nube y el despliegue se tratarán en una etapa posterior.
 7. Antes de implementar, se deben confirmar con los responsables las transiciones de estado de postulaciones/convenios, los criterios académicos exactos y los permisos detallados por rol.
 
@@ -233,3 +233,37 @@ Los umbrales de rendimiento deben tomarse de 08-escenarios-atributos-calidad.md 
 - [Drivers arquitectónicos](../../01-analisis-de-sistema/06-driver-arquitectonicos.md)
 - [Escenarios de atributos de calidad](../../01-analisis-de-sistema/08-escenarios-atributos-calidad.md)
 - [Diagramas C4](../../02-arquitectura/diagramas-c4/diagramas-c4.md)
+
+## 12. Precisiones conservando los módulos originales
+
+### Consulta de ofertas sin acceso a tablas ajenas
+
+ConsultaOfertas es el contrato público de consulta del módulo Ofertas; su fachada utiliza su repositorio privado. Postulaciones recibe un DTO con requisitos, estado y vigencia, no una entidad o repositorio interno de Ofertas. Todas las llamadas se realizan en memoria dentro del mismo backend.
+
+Antes de guardar una candidatura, Ofertas debe revalidar vigencia y requisitos dentro de la unidad de trabajo; cierre y edición de oferta usan el mismo control transaccional para evitar aceptar una candidatura a una oferta ya cerrada. PostgreSQL impone unicidad estudiante–oferta; el conflicto se traduce a 409.
+
+### Perfil empresarial y aprobación separada de ofertas
+
+Se conserva la propiedad original: Usuarios y Autenticación gestiona credenciales; Ofertas gestiona perfil empresarial y validación. En el flujo 6.2, guardar una oferta de empresa validada significa **pendiente de revisión**, no publicación automática. El coordinador debe aprobarla por separado antes de habilitar visibilidad o avisos a estudiantes; esto satisface HU-02 y RF02.
+
+### Estados separados dentro de los módulos existentes
+
+| Entidad | Estados propuestos | Responsable y condición |
+|---|---|---|
+| Postulación | registrada → en_revision → seleccionada o rechazada | Empresa propietaria evalúa; registrada también puede rechazarse directamente. Las decisiones se auditan. |
+| Convenio | borrador → pendiente_firma → activo → finalizado | Coordinador autorizado; requiere candidatura seleccionada y evidencia de firma para activar. |
+| Práctica | pendiente_inicio → en_curso → culminada | Coordinador autorizado; requiere convenio activo y fecha de inicio. |
+
+Los estados terminales no vuelven atrás en esta propuesta. El avance de la práctica se gestiona dentro de Convenios como entidad separada; no añade un módulo independiente. Finalizar el convenio requiere práctica culminada. Casos excepcionales de cancelación deberán acordarse con la Oficina antes de implementar.
+
+Seleccionar no activa convenio ni inicia práctica. Las vacantes limitan selecciones; para no excederlas, Postulaciones comprueba el número de seleccionados con bloqueo/revalidación de la oferta a través de su contrato público. No se reduce el número de vacantes por debajo de selecciones existentes.
+
+### Notificaciones y trazabilidad
+
+Notificaciones registra avisos internos por destinatario en PostgreSQL. Los cambios que requieren auditoría y avisos obligatorios pueden coordinarse con una unidad de trabajo de la misma base; una falla obligatoria revierte el conjunto, sin exponer tablas internas de otros módulos.
+
+### Calidad y alcance de pruebas
+
+Solo se priorizan AC01 Rendimiento, AC02 Seguridad y AC03 Mantenibilidad. Los escenarios usan 20 y 25 usuarios simultáneos para carga; las pruebas con dobles de Integración Académica no acreditan SIGA real. Sin verificación autorizada disponible no se acepta la candidatura como elegible.
+
+Los diagramas y explicaciones de las secciones anteriores se conservan; estas precisiones delimitan sus contratos. Ver [Arquitectura inicial](../../02-arquitectura/arquitectura-inicial.md) y [Estilo con diagrama](../../02-arquitectura/estilo-arquitectonico.md).

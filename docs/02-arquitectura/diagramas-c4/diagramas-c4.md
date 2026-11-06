@@ -26,7 +26,6 @@ flowchart LR
     Oficina["Oficina de Prácticas Preprofesionales"]
     Sistema["Sistema Web para la Gestión y Publicación de Prácticas Preprofesionales de la UNSCH"]
     SIGA["Sistema académico institucional (SIGA)"]
-    Correo["Servicio externo de correo / notificaciones"]
 
     Est -->|"Busca ofertas, postula y consulta estados"| Sistema
     Emp -->|"Gestiona perfil y publica ofertas"| Sistema
@@ -34,7 +33,6 @@ flowchart LR
     Admin -->|"Administra roles y revisa auditoría"| Sistema
     Oficina -->|"Consulta información y reportes"| Sistema
     Sistema -.->|"Consulta elegibilidad, si hay acceso autorizado"| SIGA
-    Sistema -.->|"Solicita envío de notificaciones"| Correo
 ```
 
 ### Justificación de los elementos de C1
@@ -47,9 +45,8 @@ flowchart LR
 | Administrador | RF08–RF09 | Gestiona permisos y revisa acciones administrativas. |
 | Oficina de Prácticas | RF10 | Consume reportes y vistas generales. |
 | SIGA | RF04, RC02, DA03 | Fuente potencial de datos de elegibilidad; la integración depende de autorización institucional. |
-| Servicio de correo | RF07 | Canal externo propuesto para avisos; el proveedor todavía no está seleccionado. |
 
-**Nota:** SIGA y el servicio de correo se muestran como sistemas externos previstos. No se afirma que exista una integración implementada. Si la solución institucional no autoriza acceso a SIGA, la integración debe quedar documentada como pendiente y definirse una alternativa.
+**Nota:** SIGA se muestra como integración prevista y sujeta a autorización; los avisos son internos y persisten en PostgreSQL. No se afirma que exista una integración implementada. Si la solución institucional no autoriza acceso a SIGA, la integración debe quedar documentada como pendiente y definirse una alternativa.
 
 ---
 
@@ -59,25 +56,35 @@ flowchart LR
 
 ```mermaid
 flowchart TB
-    Users["Estudiantes, empresas,<br/>coordinadores y administradores"]
+    Users["Estudiantes, empresas, / coordinadores y administradores"]
     Office["Oficina de Prácticas"]
 
     subgraph System["Sistema Web de Prácticas Preprofesionales UNSCH"]
-        Web["Portal web<br/>React (propuesto)<br/>Interfaz de usuario"]
-        API["Backend / API REST<br/>Monolito modular<br/>Clean Architecture"]
-        DB[("Base de datos relacional<br/>PostgreSQL (propuesto)")]
+        Web["Portal web / React (propuesto) / Interfaz de usuario"]
+        API["Backend / API REST / Monolito modular / Clean Architecture"]
+        DB[("Base de datos relacional / PostgreSQL (propuesto)")]
     end
 
-    SIGA["SIGA / sistema académico<br/>(integración sujeta a autorización)"]
-    Mail["Proveedor de correo<br/>(por seleccionar)"]
+    SIGA["SIGA / sistema académico / (integración sujeta a autorización)"]
 
     Users -->|"HTTPS"| Web
     Office -->|"HTTPS"| Web
     Web -->|"HTTPS, JSON"| API
     API -->|"SQL / transacciones"| DB
     API -.->|"Consulta de elegibilidad mediante adaptador"| SIGA
-    API -.->|"Solicita envío de avisos"| Mail
 ```
+
+### Relación del C2 con la referencia funcional Bumeran
+
+Bumeran es una referencia funcional, no un servicio conectado al sistema UNSCH. El diagrama conserva nuestros contenedores y tecnologías; no afirma cómo se implementa Bumeran internamente.
+
+| Flujo funcional de referencia | Contenedor de nuestra propuesta | Responsabilidad |
+|---|---|---|
+| Formularios de candidato/empresa, listado de avisos y seguimiento | Portal React | Presentar las pantallas y enviar solicitudes. |
+| Publicación de avisos, recepción de candidaturas y evaluación empresarial | Backend monolítico / API REST | Ejecutar casos de uso mediante los siete módulos originales. |
+| Necesidad de conservar información de esos procesos | PostgreSQL | Persistencia elegida por el proyecto UNSCH; no se atribuye ese motor a Bumeran. |
+
+Las reglas de aprobación del coordinador, verificación académica y convenio son extensiones institucionales. Las rutas de [nuestra API REST](../api-rest.md) se diseñan para esos flujos; no son endpoints oficiales de Bumeran.
 
 ### Responsabilidad de cada contenedor
 
@@ -87,7 +94,6 @@ flowchart TB
 | Backend / API REST | Autorización, reglas de negocio, casos de uso y contratos HTTP. | RF01–RF10, DA01, DA04 y DA05. |
 | PostgreSQL (propuesto) | Persistir usuarios, ofertas, postulaciones, convenios y auditoría. | RF01–RF10; la selección de motor es una decisión arquitectónica propuesta. |
 | SIGA externo | Proveer información académica para validar elegibilidad, si existe acceso autorizado. | RF04, RC02, DA03. |
-| Proveedor de correo | Entregar avisos a usuarios. | RF07. Proveedor pendiente de selección. |
 
 ### Módulos lógicos dentro del backend
 
@@ -99,7 +105,7 @@ flowchart TB
 - Integración Académica — RF04, RC02 y DA03.
 - Reportes y Auditoría — RF09 y RF10.
 
-Estos módulos se ejecutan dentro de un solo backend desplegable (ADR-001). Redis, RabbitMQ y una plataforma de nube no forman parte del C2 base; se evaluarán solo si hay evidencia y presupuesto que los justifique.
+Estos módulos se ejecutan dentro de un solo backend desplegable (ADR-001). PostgreSQL es la única base; no se incorporan Redis, RabbitMQ ni servicios adicionales en el C2 base. El backend conserva los siete módulos originales.
 
 ---
 
@@ -109,15 +115,15 @@ Estos módulos se ejecutan dentro de un solo backend desplegable (ADR-001). Redi
 
 ```mermaid
 flowchart TB
-    HTTP["Controlador REST<br/>PostulacionesController"]
-    UC["Caso de uso<br/>RegistrarPostulacion"]
-    OfferPort["Puerto de consulta<br/>OfertaRepository"]
-    AppPort["Puerto de persistencia<br/>PostulacionRepository"]
-    EligibilityPort["Puerto académico<br/>VerificadorElegibilidad"]
-    Domain["Dominio<br/>Postulacion + reglas de estado"]
-    OfferAdapter["Adaptador de ofertas<br/>Repositorio PostgreSQL"]
-    AppAdapter["Adaptador de postulaciones<br/>Repositorio PostgreSQL"]
-    AcademicAdapter["Adaptador SIGA<br/>(si está autorizado)"]
+    HTTP["Controlador REST / PostulacionesController"]
+    UC["Caso de uso / RegistrarPostulacion"]
+    OfferPort["Puerto de consulta / ConsultaOfertas"]
+    AppPort["Puerto de persistencia / PostulacionRepository"]
+    EligibilityPort["Puerto académico / VerificadorElegibilidad"]
+    Domain["Dominio / Postulacion + reglas de estado"]
+    OfferAdapter["Fachada pública / Módulo Ofertas"]
+    AppAdapter["Adaptador de postulaciones / Repositorio PostgreSQL"]
+    AcademicAdapter["Adaptador SIGA / (si está autorizado)"]
     DB[("PostgreSQL")]
     SIGA["Sistema académico SIGA"]
 
@@ -129,7 +135,8 @@ flowchart TB
     OfferAdapter -.->|"Implementa"| OfferPort
     AppAdapter -.->|"Implementa"| AppPort
     AcademicAdapter -.->|"Implementa"| EligibilityPort
-    OfferAdapter --> DB
+    OfferAdapter --> OfferPrivate["Repositorio privado de Ofertas"]
+    OfferPrivate --> DB
     AppAdapter --> DB
     AcademicAdapter -.-> SIGA
 ```
@@ -140,11 +147,11 @@ flowchart TB
 |---|---|---|
 | PostulacionesController | Recibir la petición HTTP, validar formato y mapear la respuesta; no contiene reglas de negocio centrales. | RF04–RF06, DA05. |
 | RegistrarPostulacion | Coordinar elegibilidad, comprobación de duplicados y registro de la postulación. | RF04, RF05; DA04 y DA06. |
-| Dominio Postulacion | Representar la postulación y sus reglas válidas de estado. | RF05–RF06; AC05. |
-| OfertaRepository (puerto) | Definir cómo consultar una oferta sin acoplar el caso de uso a PostgreSQL. | RF02–RF04; DA06. |
-| PostulacionRepository (puerto) | Definir operaciones para comprobar y guardar postulaciones. | RF05–RF06; AC05. |
+| Dominio Postulacion | Representar la postulación y sus reglas válidas de estado. | RF05–RF06; AC03. |
+| ConsultaOfertas (contrato público) | Consultar requisitos/vigencia mediante la fachada de Ofertas, sin acceder a su repositorio privado. | RF02–RF04; DA06. |
+| PostulacionRepository (puerto) | Definir operaciones para comprobar y guardar postulaciones. | RF05–RF06; AC03. |
 | VerificadorElegibilidad (puerto) | Abstraer la comprobación de créditos/ciclo u otros criterios académicos. | RF04, RC02, DA03. |
-| Adaptadores PostgreSQL | Implementar persistencia concreta. | RF01–RF10; decisión de persistencia. |
+| Adaptadores PostgreSQL | Implementar persistencia privada de cada módulo. | RF01–RF10; decisión de persistencia. |
 | Adaptador SIGA | Traducir el contrato interno a la integración externa, si es autorizada. | RF04, RC02, DA03. |
 
 **Regla de integridad:** la prevención de duplicados no debe depender únicamente de una comprobación previa en el caso de uso. La implementación debe proteger también la escritura frente a solicitudes concurrentes, por ejemplo con una restricción única sobre estudiante y oferta y manejo controlado del conflicto.
@@ -170,7 +177,7 @@ classDiagram
         +estado
         +crear()
     }
-    class OfertaRepository {
+    class ConsultaOfertas {
         <<interface>>
         +buscarPorId(ofertaId)
     }
@@ -183,7 +190,7 @@ classDiagram
         <<interface>>
         +esElegible(estudianteId, oferta)
     }
-    class OfertaRepositoryPostgres {
+    class FachadaOfertas {
         +buscarPorId(ofertaId)
     }
     class PostulacionRepositoryPostgres {
@@ -195,11 +202,11 @@ classDiagram
     }
 
     PostulacionesController --> RegistrarPostulacion
-    RegistrarPostulacion --> OfertaRepository
+    RegistrarPostulacion --> ConsultaOfertas
     RegistrarPostulacion --> PostulacionRepository
     RegistrarPostulacion --> VerificadorElegibilidad
     RegistrarPostulacion --> Postulacion
-    OfertaRepositoryPostgres ..|> OfertaRepository
+    FachadaOfertas ..|> ConsultaOfertas
     PostulacionRepositoryPostgres ..|> PostulacionRepository
     VerificadorElegibilidadSIGA ..|> VerificadorElegibilidad
 ```
@@ -224,24 +231,31 @@ classDiagram
 
 | Elemento arquitectónico | Requisitos | Calidad / restricción / driver |
 |---|---|---|
-| Portal web | RF01–RF10 | DA01, DA05, AC04 |
-| API REST | RF01–RF10 | DA01, DA05, AC03, AC05 |
-| Autenticación y roles | RF08 | AC03 |
-| Módulo Ofertas | RF01–RF03 | AC02, AC04 |
-| Módulo Postulaciones | RF04–RF06 | AC02, AC03, AC05 |
-| Módulo Convenios | RF06, RF10 | AC04, AC05 |
-| Módulo Notificaciones | RF07 | AC02 |
-| Reportes y auditoría | RF09–RF10 | AC03, AC04 |
-| PostgreSQL | RF01–RF10, según los datos persistidos | AC02, AC05 |
+| Portal web | RF01–RF10 | DA01, DA05, RF03 |
+| API REST | RF01–RF10 | DA01, DA05, AC02, AC03 |
+| Autenticación y roles | RF08 | AC02 |
+| Módulo Ofertas | RF01–RF03 | AC01, RF03 |
+| Módulo Postulaciones | RF04–RF06 | AC01, AC02, AC03 |
+| Módulo Convenios | RF06, RF10 | RF03, AC03 |
+| Módulo Notificaciones | RF07 | AC01 |
+| Reportes y auditoría | RF09–RF10 | AC02, RF03 |
+| PostgreSQL | RF01–RF10, según los datos persistidos | AC01, AC03 |
 | Adaptador SIGA | RF04 | RC02, DA03 |
-| Interfaces de repositorio | RF04–RF06 | DA04, DA06, AC05 |
+| Interfaces de repositorio | RF04–RF06 | DA04, DA06, AC03 |
 | Protección contra duplicados | RF05 | Integridad de datos |
-| Proveedor de correo | RF07 | Proveedor pendiente de selección |
 
 ## Decisiones y límites conocidos
 
 1. La arquitectura seleccionada es monolito modular con API REST y Clean Architecture; no se proponen microservicios en esta etapa.
 2. React y PostgreSQL son tecnologías propuestas en los documentos. Deben contrastarse con el repositorio de código antes de presentarlas como implementación.
-3. La integración con SIGA y el proveedor de correo dependen de acceso, autorización y selección técnica.
+3. La integración con SIGA depende de acceso autorizado; las notificaciones base son internas en PostgreSQL.
 4. El despliegue en nube se documentará en una etapa posterior, tal como se acordó para el proyecto.
 5. Los diagramas C1–C4 mantienen el mismo límite de sistema, los mismos actores y nombres coherentes entre niveles.
+
+## Aclaración de los límites del diseño
+
+Se mantienen Usuarios y Autenticación, Ofertas, Postulaciones, Convenios, Notificaciones, Integración Académica y Reportes y Auditoría. El perfil empresarial y su aprobación pertenecen a Ofertas; Usuarios administra sus credenciales. Convenios mantiene por separado el documento y el seguimiento de la práctica.
+
+ConsultaOfertas se implementa mediante la fachada pública de Ofertas, en el mismo backend; solo ese módulo accede a su repositorio privado. No se trata de SQL de Postulaciones a tablas ajenas. Las llamadas de los diagramas C3/C4 son internas, no servicios HTTP separados.
+
+Los avisos son internos en PostgreSQL; SIGA depende de autorización. La documentación no acredita que la integración esté implementada. Se evalúan únicamente AC01 Rendimiento, AC02 Seguridad y AC03 Mantenibilidad, con carga de 20 y 25 usuarios donde corresponde.
