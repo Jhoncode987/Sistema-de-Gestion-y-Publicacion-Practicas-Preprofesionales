@@ -33,9 +33,9 @@ Este estilo no significa colocar todo el código en una sola clase o carpeta. La
 | Convenios | Dar seguimiento al ciclo de vida de los convenios de prácticas. |
 | Notificaciones | Preparar y gestionar avisos por cambios de estado y nuevas ofertas. |
 | Integración Académica | Consultar elegibilidad a través de un adaptador para SIGA, si existe un mecanismo institucional autorizado. |
-| PostgreSQL | Persistir la información estructurada de la aplicación mediante tablas y restricciones adecuadas. |
-| Redis (opcional) | Almacenar temporalmente datos de lectura frecuente solo si las mediciones justifican su uso. |
-| RabbitMQ (opcional) | Procesar tareas asíncronas, por ejemplo, notificaciones, solo si se requiere y se puede operar. |
+| Reportes y Auditoría | Registrar acciones administrativas y generar reportes por periodo y carrera (RF09, RF10). |
+| PostgreSQL | Persistir la información estructurada de la aplicación mediante tablas y restricciones adecuadas. Cada módulo es dueño de sus tablas. |
+| Redis / RabbitMQ (fuera de la arquitectura inicial) | Posible caché y mensajería asíncrona, solo si las mediciones lo justifican (ADR-003). No aparecen en el diagrama. |
 | Servicio externo de correo/SMS | Entregar notificaciones mediante un proveedor externo. |
 
 Los módulos de negocio no deben importar ni modificar directamente las clases internas de otros módulos. La comunicación entre módulos se realizará mediante interfaces, servicios de aplicación o contratos internos definidos explícitamente.
@@ -55,22 +55,21 @@ flowchart TD
         API --> Post["Módulo de Postulaciones"]
         API --> Conv["Módulo de Convenios"]
         API --> Notif["Módulo de Notificaciones"]
+        API --> Rep["Módulo de Reportes y Auditoría"]
         Post --> Acad["Módulo de Integración Académica"]
         Auth --> DB[(PostgreSQL)]
         Of --> DB
         Post --> DB
         Conv --> DB
         Notif --> DB
-        Acad --> DB
+        Rep --> DB
     end
 
     Acad -. consulta autorizada .-> SIGA[Sistema académico SIGA]
     Notif -. envío .-> Canal[Proveedor de correo / SMS]
-    Notif -. opcional .-> MQ[(RabbitMQ)]
-    Of -. caché opcional .-> Redis[(Redis)]
 ```
 
-El diagrama representa límites lógicos dentro de una aplicación desplegable, no servicios independientes. PostgreSQL es la persistencia principal propuesta. Redis y RabbitMQ no son requisitos iniciales: se añadirán únicamente si hay una necesidad demostrada. La integración con SIGA depende de que la universidad habilite un mecanismo de acceso.
+El diagrama representa límites lógicos dentro de una aplicación desplegable, no servicios independientes. PostgreSQL es la persistencia principal propuesta. Redis y RabbitMQ no forman parte de la arquitectura inicial: se añadirían únicamente si hay una necesidad demostrada (ADR-003). La integración con SIGA depende de que la universidad habilite un mecanismo de acceso.
 
 ## 6. Ventajas esperadas
 

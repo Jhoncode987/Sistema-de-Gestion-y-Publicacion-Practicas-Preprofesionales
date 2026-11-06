@@ -47,7 +47,7 @@ flowchart LR
 | Administrador | RF08–RF09 | Gestiona permisos y revisa acciones administrativas. |
 | Oficina de Prácticas | RF10 | Consume reportes y vistas generales. |
 | SIGA | RF04, RC02, DA03 | Fuente potencial de datos de elegibilidad; la integración depende de autorización institucional. |
-| Servicio de correo | RF07, DA05 | Canal externo propuesto para avisos; el proveedor todavía no está seleccionado. |
+| Servicio de correo | RF07 | Canal externo propuesto para avisos; el proveedor todavía no está seleccionado. |
 
 **Nota:** SIGA y el servicio de correo se muestran como sistemas externos previstos. No se afirma que exista una integración implementada. Si la solución institucional no autoriza acceso a SIGA, la integración debe quedar documentada como pendiente y definirse una alternativa.
 
@@ -236,7 +236,7 @@ classDiagram
 | Adaptador SIGA | RF04 | RC02, DA03 |
 | Interfaces de repositorio | RF04–RF06 | DA04, DA06, AC05 |
 | Protección contra duplicados | RF05 | Integridad de datos |
-| Proveedor de correo | RF07 | DA05; proveedor pendiente |
+| Proveedor de correo | RF07 | Proveedor pendiente de selección |
 
 ## Decisiones y límites conocidos
 

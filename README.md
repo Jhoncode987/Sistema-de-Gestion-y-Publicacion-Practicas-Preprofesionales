@@ -4,7 +4,7 @@
 Propuesta de sistema web para la Universidad Nacional de San Cristóbal de Huamanga (UNSCH), elaborada como parte del curso de Arquitectura de Software. Busca centralizar la gestión de prácticas preprofesionales para estudiantes, empresas y coordinadores.
 
 ## Estilo arquitectónico
-Se propone un **monolito modular** con una API REST y **Clean Architecture** como enfoque interno. El backend será una única aplicación desplegable organizada en módulos de Usuarios y Autenticación, Ofertas, Postulaciones, Convenios, Notificaciones e Integración Académica. PostgreSQL es la persistencia principal propuesta; Redis y RabbitMQ son opcionales y solo se incorporarán si los requisitos y las mediciones lo justifican.
+Se propone un **monolito modular** con una API REST y **Clean Architecture** como enfoque interno. El backend será una única aplicación desplegable organizada en módulos de Usuarios y Autenticación, Ofertas, Postulaciones, Convenios, Notificaciones, Integración Académica y Reportes y Auditoría. PostgreSQL es la persistencia de la primera versión; Redis y RabbitMQ no forman parte de la arquitectura inicial y solo se evaluarán si los requisitos y las mediciones lo justifican. Como referencia funcional se toma el portal de empleo Bumeran (ver [Arquitectura inicial](docs/02-arquitectura/arquitectura-inicial.md)).
 
 ## Documentación
 La documentación del proyecto se organiza en `docs/` y los ejemplos tecnológicos en `tecnologia/`.
@@ -20,8 +20,8 @@ La documentación del proyecto se organiza en `docs/` y los ejemplos tecnológic
 - [Estilo arquitectónico](docs/02-arquitectura/estilo-arquitectonico.md)
 - [Enfoque de Clean Architecture](docs/02-arquitectura/enfoque/enfoque-arquitectonico.md)
 - [Decisiones arquitectónicas (ADR)](docs/02-arquitectura/decisiones-arquitectonicas.md)
-- [Diagramas C4](docs/02-arquitectura/diagramas-c4/README.md)
-- [Diseño interno](docs/03-diseno-de-software/diseno-interno/README.md)
+- [Diagramas C4](docs/02-arquitectura/diagramas-c4/diagramas-c4.md)
+- [Diseño interno](docs/03-diseno-de-software/diseno-interno/01-diseno-interno.md)
 - [Ejemplos tecnológicos de Clean Architecture](tecnologia/clean-architecture/README.md)
 
 ## Estado
