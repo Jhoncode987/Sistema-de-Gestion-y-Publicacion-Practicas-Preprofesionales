@@ -1,5 +1,7 @@
 # Ejemplos tecnológicos de Clean Architecture
 
-Esta carpeta está destinada a ejemplos de código que ilustren la organización por capas de Clean Architecture.
+Carpeta reservada para ejemplos del backend monolítico con PostgreSQL. El lenguaje y framework siguen pendientes; no contiene código ejecutable.
 
-La tecnología del backend aún debe confirmarse. No se presenta código ejecutable hasta elegir el stack y validar la estructura de la aplicación.
+El ejemplo deberá demostrar RegistrarPostulacion, contratos públicos de Ofertas y Verificación Académica, persistencia propia y pruebas con dobles. No incluir caché externa, broker ni microservicios.
+
+Ver [Diseño interno](../../docs/03-diseno-de-software/diseno-interno/01-diseno-interno.md) y [API REST](../../docs/02-arquitectura/api-rest.md).

@@ -1,102 +1,41 @@
 # Estilo arquitectónico
 
-## 1. Propósito
+## Selección y justificación
 
-Definir la organización global propuesta para el **Sistema Web para la Gestión y Publicación de Prácticas Preprofesionales de la UNSCH**, tomando como base los requisitos, atributos de calidad y drivers documentados en `analisis-de-sistema/`.
+Se selecciona **arquitectura monolítica modular con API REST y PostgreSQL**. Una sola aplicación backend ejecuta todos los módulos en el mismo proceso y se actualiza como una unidad. El monolito modular es una forma de arquitectura monolítica con límites internos explícitos.
 
-## 2. Estilo seleccionado
+La carga académica de 20 a 25 usuarios simultáneos, el presupuesto y el equipo del proyecto justifican comenzar con un solo backend y una sola base de datos. La capacidad real se comprobará mediante los escenarios, no se deduce únicamente del estilo elegido.
 
-**Monolito modular con API REST y enfoque interno de Clean Architecture.**
+Clean Architecture organiza el código por dominio, aplicación, presentación e infraestructura dentro de cada módulo. REST organiza el contrato HTTP con el portal. Ninguno de esos conceptos exige servicios independientes.
 
-El backend se implementará como una única aplicación desplegable, organizada en módulos con responsabilidades claras: Autenticación y Usuarios, Ofertas, Postulaciones, Convenios, Notificaciones e Integración Académica. El portal web, propuesto con React, consume la API REST del backend. Los módulos comparten el mismo proceso de ejecución y, en la primera versión, una base de datos PostgreSQL, pero mantienen límites lógicos y evitan acceder directamente a la lógica interna de otros módulos.
+## Límites y comunicación
 
-Este estilo no significa colocar todo el código en una sola clase o carpeta. La aplicación debe separar dominio, casos de uso, presentación e infraestructura, y mantener dependencias controladas. Esta es una **propuesta arquitectónica** del repositorio, no una afirmación de que todas las tecnologías ya estén implementadas.
-
-## 3. Drivers que motivan la decisión
-
-- **DA01 — Centralización de procesos dispersos:** un portal web y una API consistentes reúnen los trámites de estudiantes, empresas y coordinadores.
-- **DA02 — Picos de demanda estacionales:** medir el rendimiento y optimizar consultas antes de incorporar caché o procesamiento asíncrono.
-- **DA03 — Integración con sistemas legados:** aislar la comunicación con SIGA mediante un adaptador.
-- **DA04 — Evolución modular:** separar capacidades del negocio en módulos dentro de una aplicación desplegable.
-- **DA05 — Comunicación estandarizada:** exponer contratos HTTP mediante API REST.
-- **DA06 — Mantenibilidad:** controlar dependencias y reducir el impacto de los cambios.
-
-## 4. Módulos y responsabilidades
-
-| Módulo / componente | Responsabilidad |
+| Elemento | Decisión |
 |---|---|
-| Portal web (React) | Presentar los flujos de estudiantes, empresas, coordinadores y administradores. |
-| API REST / Presentación | Recibir solicitudes HTTP, validar datos de entrada, aplicar autenticación y autorización, y devolver respuestas. |
-| Autenticación y Usuarios | Gestionar identidad, sesión o tokens y roles. |
-| Ofertas | Publicar, editar, cerrar, buscar y filtrar ofertas de prácticas. |
-| Postulaciones | Registrar postulaciones, impedir duplicados y controlar estados. |
-| Convenios | Dar seguimiento al ciclo de vida de los convenios de prácticas. |
-| Notificaciones | Preparar y gestionar avisos por cambios de estado y nuevas ofertas. |
-| Integración Académica | Consultar elegibilidad a través de un adaptador para SIGA, si existe un mecanismo institucional autorizado. |
-| Reportes y Auditoría | Registrar acciones administrativas y generar reportes por periodo y carrera (RF09, RF10). |
-| PostgreSQL | Persistir la información estructurada de la aplicación mediante tablas y restricciones adecuadas. Cada módulo es dueño de sus tablas. |
-| Redis / RabbitMQ (fuera de la arquitectura inicial) | Posible caché y mensajería asíncrona, solo si las mediciones lo justifican (ADR-003). No aparecen en el diagrama. |
-| Servicio externo de correo/SMS | Entregar notificaciones mediante un proveedor externo. |
+| Portal | React en el navegador, con archivos compilados servidos por el backend. |
+| Backend | Monolito: Usuarios, Empresas, Ofertas, Postulaciones, Convenios y Prácticas, Notificaciones, Verificación Académica, Reportes y Auditoría. |
+| Datos | Una instancia de PostgreSQL y una base para la aplicación; tablas/esquemas con propietario modular. |
+| Comunicación externa del cliente | HTTPS y JSON mediante la API propia /api/v1. |
+| Comunicación entre módulos | Contratos públicos invocados en memoria. Sin solicitudes HTTP internas ni acceso a tablas ajenas. |
+| Notificaciones | Internas, almacenadas en PostgreSQL; sin proveedor externo en la base. |
+| Sistema académico | Registros locales verificados; SIGA es una opción de adaptación autorizada, no una dependencia obligatoria del arranque. |
 
-Los módulos de negocio no deben importar ni modificar directamente las clases internas de otros módulos. La comunicación entre módulos se realizará mediante interfaces, servicios de aplicación o contratos internos definidos explícitamente.
+## Referencia funcional y diseño
 
-## 5. Diagrama global
+Los flujos de Bumeran inspiran cuentas de candidatos/empresas, avisos y postulaciones. La descomposición en frontend, backend y datos es una **propuesta conceptual de nuestro sistema** que permite realizar esos flujos. No se presenta como arquitectura real de Bumeran.
 
-```mermaid
-flowchart TD
-    Est[Estudiante] --> Web[Portal web React]
-    Emp[Empresa] --> Web
-    Coord[Coordinador / Administrador] --> Web
+El [C2](diagramas-c4/diagramas-c4.md) explicita esa correspondencia; [API REST](api-rest.md) concreta cómo el backend recibe y resuelve las operaciones.
 
-    Web --> API[API REST]
-    subgraph App["Backend: una aplicación desplegable"]
-        API --> Auth["Módulo de Usuarios y Autenticación"]
-        API --> Of["Módulo de Ofertas"]
-        API --> Post["Módulo de Postulaciones"]
-        API --> Conv["Módulo de Convenios"]
-        API --> Notif["Módulo de Notificaciones"]
-        API --> Rep["Módulo de Reportes y Auditoría"]
-        Post --> Acad["Módulo de Integración Académica"]
-        Auth --> DB[(PostgreSQL)]
-        Of --> DB
-        Post --> DB
-        Conv --> DB
-        Notif --> DB
-        Rep --> DB
-    end
+## Costes y compensaciones
 
-    Acad -. consulta autorizada .-> SIGA[Sistema académico SIGA]
-    Notif -. envío .-> Canal[Proveedor de correo / SMS]
-```
+- Un cambio de código exige construir y publicar nuevamente el backend completo.
+- Todos los módulos comparten proceso y base; una falla puede afectar al conjunto.
+- Los contratos y la propiedad de tablas deben revisarse para evitar acoplamiento.
+- Las transacciones locales facilitan mantener coherentes cambios, auditoría y notificaciones.
+- Los índices y consultas se ajustan según las mediciones con 20 y 25 usuarios.
 
-El diagrama representa límites lógicos dentro de una aplicación desplegable, no servicios independientes. PostgreSQL es la persistencia principal propuesta. Redis y RabbitMQ no forman parte de la arquitectura inicial: se añadirían únicamente si hay una necesidad demostrada (ADR-003). La integración con SIGA depende de que la universidad habilite un mecanismo de acceso.
+## Verificación
 
-## 6. Ventajas esperadas
+AC01 se verifica con EQ-01/EQ-02; AC02 con EQ-03; AC03 con EQ-04. La regla de duplicidad se prueba además con 25 solicitudes concurrentes del mismo estudiante a una oferta.
 
-- Menor complejidad de desarrollo, despliegue y monitoreo que una arquitectura distribuida.
-- Módulos con responsabilidades definidas y menor acoplamiento.
-- Transacciones más sencillas para operaciones relacionadas, como registrar una postulación y validar su estado.
-- Pruebas unitarias y de integración más fáciles de ejecutar en una primera versión.
-- Posibilidad de separar un módulo en un servicio independiente en el futuro, si la necesidad se demuestra y sus límites están bien definidos.
-
-## 7. Costes y riesgos
-
-- Los módulos comparten el proceso de despliegue; una publicación del backend puede afectar a toda la aplicación.
-- Si no se respetan los límites, el monolito puede volverse difícil de mantener y los módulos pueden quedar acoplados.
-- El escalamiento suele hacerse inicialmente para toda la aplicación, no para un módulo aislado.
-- Redis, RabbitMQ y otros componentes aumentan el coste operativo y no deben añadirse solo por estar en un diagrama.
-- Se deben proteger las operaciones concurrentes y definir transacciones, restricciones y permisos en la base de datos.
-
-## 8. Criterios de validación
-
-1. El backend se construye y despliega como una aplicación, con módulos de negocio identificables.
-2. Cada módulo tiene una responsabilidad y una interfaz interna documentadas.
-3. Los controladores no contienen reglas centrales del negocio.
-4. Las integraciones con SIGA y proveedores de notificaciones están aisladas detrás de adaptadores.
-5. Las reglas de autorización se validan en las operaciones protegidas.
-6. Las pruebas cubren permisos, elegibilidad académica, duplicidad de postulaciones y transiciones de estado.
-7. La necesidad de Redis o RabbitMQ se confirma con escenarios de carga y requisitos operativos.
-
-## 9. Decisión
-
-Se selecciona **monolito modular** como estilo arquitectónico para la primera versión del sistema. La organización interna seguirá el enfoque de **Clean Architecture**, descrito en `enfoque/enfoque-arquitectonico.md`. La posible extracción futura de un módulo a un servicio independiente será una decisión posterior, sustentada en necesidades reales.
+La vista conceptual de despliegue está en C4. Framework, proveedor, instalación, migraciones y pruebas ejecutables se completarán al implementar; no se afirma que el sistema ya esté desplegado.

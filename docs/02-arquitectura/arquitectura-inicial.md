@@ -1,93 +1,85 @@
-# Arquitectura Inicial del Sistema
+# Arquitectura inicial del sistema
 
-## Estilo arquitectónico
+## Decisión
 
-El sistema se propone como un **monolito modular**: el backend se construye y despliega como una sola aplicación, pero su código se divide en módulos de negocio con responsabilidades e interfaces claras. Cada módulo se organiza internamente con Clean Architecture (dominio, aplicación e infraestructura).
+**Arquitectura monolítica modular con API REST y PostgreSQL como única base de datos.** El backend es una sola aplicación desplegable; todos sus módulos se construyen, ejecutan y actualizan juntos. Clean Architecture organiza las dependencias internas.
 
-## Referencia: Bumeran
+El portal React se ejecuta en el navegador. Para la entrega base, sus archivos compilados los sirve el mismo despliegue del backend, que también expone /api/v1. PostgreSQL es un proceso de datos separado; esto no convierte el backend en microservicios. El lenguaje y framework del backend están pendientes de elección y no se presenta una implementación ejecutable.
 
-Por indicación de la docente, la arquitectura toma como referencia funcional a **Bumeran**, un portal de empleo de alcance regional. Bumeran no publica su arquitectura interna, por lo que la referencia es **funcional y de dominio** (qué capacidades ofrece y cómo se relacionan sus actores), no una réplica técnica.
+## Bumeran como referencia funcional
 
-Capacidades observables de Bumeran y su equivalente en este sistema:
+Se toma como referencia el flujo observable de portal de empleo: empresa, aviso, candidato y postulación. Las fuentes documentan publicación de avisos, administración de candidatos y seguimiento desde “Mis postulaciones”:
 
-| Capacidad en Bumeran | Equivalente en el sistema UNSCH | Módulo |
+- [Publicación y administración de postulaciones](https://www.bumeran.com.pe/productos/talento/).
+- [Seguimiento de postulaciones](https://www.bumeran.com.pe/blog/buscar-trabajo/que-hacer-despues-de-postular-a-un-empleo-en-bumeran/).
+- [Condiciones de publicación y moderación](https://www.bumeran.com.pe/empresas/condicionesDeContratacion).
+
+Referencia consultada: 6 de noviembre de 2026. Las páginas comerciales pueden cambiar. Estos enlaces sustentan capacidades observables, no la implementación técnica de Bumeran.
+
+| Capacidad de referencia | Adaptación UNSCH | Módulo responsable |
 |---|---|---|
-| El candidato crea una cuenta y mantiene su CV/perfil. | El estudiante tiene una cuenta con rol y datos académicos. | Usuarios y Autenticación |
-| La empresa crea una cuenta de empresa y publica avisos. | La empresa se registra, es validada por el coordinador y publica ofertas de prácticas. | Usuarios y Autenticación, Ofertas |
-| Búsqueda de avisos con filtros. | Búsqueda de ofertas filtradas por carrera, ciclo y modalidad (RF03). | Ofertas |
-| El candidato se postula a un aviso. | El estudiante postula a una oferta, con validación de elegibilidad y sin duplicados (RF04, RF05). | Postulaciones, Integración Académica |
-| El candidato recibe alertas y avisos sobre sus postulaciones por correo. | Notificaciones de nuevas ofertas y cambios de estado (RF07). | Notificaciones |
-| La empresa gestiona a los postulantes de sus avisos. | La empresa evalúa postulantes; el coordinador da seguimiento al convenio (RF06). | Postulaciones, Convenios |
+| Cuenta de candidato | Identidad y perfil del estudiante | Usuarios y Autenticación |
+| Cuenta de empresa | Credenciales en Usuarios; perfil institucional y validación en Empresas | Usuarios y Empresas |
+| Publicación de avisos | Ofertas revisadas por el coordinador | Ofertas |
+| Consulta de oportunidades | Filtros por carrera, ciclo y modalidad | Ofertas |
+| Postulación y seguimiento | Verificación académica, registro sin duplicados y consulta de estados | Postulaciones |
+| Administración de candidatos | Evaluación y selección por la empresa propietaria | Postulaciones |
+| Extensión institucional propia | Convenios, seguimiento de prácticas, reportes y auditoría | Convenios y Prácticas; Reportes y Auditoría |
 
-**Diferencias deliberadas respecto a Bumeran** (por el contexto institucional):
+La aprobación por un coordinador UNSCH y la validación académica son reglas propias. No se afirma que Bumeran carezca de moderación, auditoría o reportes. Nuestra solución no gestiona pagos.
 
-- Las empresas y las ofertas pasan por **validación del coordinador** antes de ser visibles (RF01, HU-02); en Bumeran la publicación es abierta o por planes de pago.
-- No hay planes de pago ni avisos destacados (RC01).
-- La elegibilidad del postulante se comprueba contra el sistema académico (RC02), no contra un CV libre.
-- Se añaden **convenios**, **auditoría** y **reportes** para la Oficina de Prácticas, que un portal de empleo comercial no requiere.
+## Arquitectura base
 
-## Diagrama de arquitectura
-
-El siguiente diagrama representa la arquitectura propuesta para el **Sistema Web para la Gestión y Publicación de Prácticas Preprofesionales (UNSCH)**. La única base de datos es PostgreSQL.
-
-```mermaid
-flowchart TD
-    subgraph Actores["ACTORES"]
-        A1([Estudiante])
-        A2([Empresa])
-        A3([Coordinador / Administrador])
-        A4([Oficina de Prácticas])
+~~~mermaid
+flowchart TB
+    U["Estudiante, empresa y personal autorizado"]
+    Web["Portal React en navegador"]
+    subgraph App["Único despliegue de aplicación"]
+        Static["Archivos del portal"]
+        API["Backend monolítico y API REST"]
+        Modules["Módulos internos de negocio"]
+        Static --- API
+        API --> Modules
     end
-
-    subgraph Presentacion["PRESENTACIÓN"]
-        WEB["Portal web React"]
-        API["API REST / Controladores"]
-        WEB --> API
-    end
-
-    subgraph Backend["BACKEND: UNA APLICACIÓN DESPLEGABLE (MONOLITO MODULAR)"]
-        M1["Usuarios y Autenticación"]
-        M2["Ofertas"]
-        M3["Postulaciones"]
-        M4["Convenios"]
-        M5["Notificaciones"]
-        M6["Integración Académica"]
-        M7["Reportes y Auditoría"]
-    end
-
     DB[("PostgreSQL")]
-    SIGA["Sistema académico SIGA"]
-    MAIL["Proveedor de correo / SMS"]
+    U --> Web
+    Web -->|"HTTPS: obtiene archivos"| Static
+    Web -->|"HTTPS y JSON"| API
+    Modules -->|"Consultas y transacciones"| DB
+~~~
 
-    A1 --> WEB
-    A2 --> WEB
-    A3 --> WEB
-    A4 --> WEB
-    API --> Backend
-    Backend --> DB
-    M6 -. integración autorizada .-> SIGA
-    M5 -. envío de avisos .-> MAIL
-```
+El detalle de contenedores, la relación con Bumeran y la vista de despliegue se encuentran en [Diagramas C4](diagramas-c4/diagramas-c4.md).
 
-Cada módulo del backend contiene sus propias capas de Clean Architecture (dominio, aplicación e infraestructura); no existen capas globales compartidas entre módulos. Esa estructura interna se detalla en [Enfoque de Clean Architecture](enfoque/enfoque-arquitectonico.md).
+## Responsabilidades y propiedad
 
-## Responsabilidades principales
-
-| Módulo | Responsabilidad |
+| Módulo | Responsabilidad y datos propios |
 |---|---|
-| Usuarios y Autenticación | Identidad, acceso y permisos por rol. |
-| Ofertas | Registro y validación de empresas; publicación, edición, cierre y búsqueda de ofertas. |
-| Postulaciones | Registro, validación, prevención de duplicados y seguimiento. |
-| Convenios | Seguimiento de convenios de prácticas. |
-| Notificaciones | Avisos sobre ofertas y cambios de estado. |
-| Integración Académica | Consultar requisitos académicos a través de un adaptador, si se habilita el acceso a SIGA. |
-| Reportes y Auditoría | Registro de acciones administrativas y reportes por periodo y carrera (RF09, RF10). |
+| Usuarios y Autenticación | Cuentas, credenciales, roles y asignaciones de ámbito. |
+| Empresas | Perfil de empresa, estado de aprobación y motivo de decisión. |
+| Ofertas | Requisitos, versiones, aprobación, vigencia y cierre. |
+| Postulaciones | Candidaturas, evaluación, selección y protección de unicidad estudiante–oferta. |
+| Convenios y Prácticas | Dos entidades con estados separados; seguimiento institucional del estudiante seleccionado. |
+| Notificaciones | Avisos internos y lectura por destinatario, persistidos en PostgreSQL. |
+| Verificación Académica | Antecedentes verificados del periodo vigente, con fuente y fecha; puerto para una eventual consulta autorizada a SIGA. |
+| Reportes y Auditoría | Proyecciones mediante contratos públicos; registro de acciones sensibles. |
 
-## Consideraciones de diseño
+Cada módulo es dueño de sus tablas, preferentemente en un esquema propio de la misma base. No accede directamente a tablas o repositorios internos de otros módulos. La comunicación es mediante llamadas en memoria a contratos públicos, no HTTP entre módulos.
 
-- Los módulos forman parte de la misma aplicación y no son microservicios desplegados por separado.
-- La base de datos PostgreSQL es la única persistencia de la primera versión. Cada módulo es dueño de sus tablas (por ejemplo, un esquema por módulo) y no consulta directamente las tablas de otro módulo.
-- Las reglas de negocio deben estar en el dominio y los casos de uso, no dentro de los controladores HTTP.
-- Redis y RabbitMQ no forman parte de la arquitectura inicial. Su posible incorporación se evalúa con mediciones, según [ADR-003](decisiones-arquitectonicas.md).
-- La integración real con SIGA depende de los mecanismos de acceso que autorice la universidad.
-- El diagrama es una propuesta conceptual. Debe actualizarse cuando se confirme la estructura real del código y la tecnología del backend.
+## Simplificación y cambios en el backend
+
+- Una sola base PostgreSQL almacena negocio, antecedentes verificados, notificaciones y auditoría.
+- Las notificaciones se registran dentro de transacciones del mismo backend; su lectura es desde el portal. No se requiere correo, SMS ni un worker independiente.
+- Reportes y dashboard consultan contratos públicos y se generan en el backend.
+- La búsqueda usa filtros, índices y paginación de 20 resultados; se mide con 20 y 25 usuarios simultáneos.
+- Sin Redis, RabbitMQ, microservicios ni almacenamiento adicional en la versión base.
+- SIGA no forma parte del despliegue base: se incorpora mediante adaptador solo con autorización. Mientras tanto, el coordinador verifica antecedentes del periodo vigente; sin verificación válida la postulación no se acepta.
+
+## API REST propia basada en la referencia funcional
+
+La API implementa los recursos de empresas, ofertas y postulaciones derivados de esos flujos. Sus rutas y contratos son diseño del proyecto UNSCH; no son endpoints publicados por Bumeran ni implican consumir sus servicios.
+
+Ver [contratos REST y correspondencia funcional](api-rest.md).
+
+## Alcance de la documentación
+
+Los tres atributos son AC01 Rendimiento, AC02 Seguridad y AC03 Mantenibilidad. Los escenarios y diagramas son propuestas; todavía no acreditan código, integración externa o despliegue ejecutado.
