@@ -1,50 +1,93 @@
-# Enfoque interno: Clean Architecture
+# Enfoque arquitectónico: Clean Architecture
 
-## Propósito
+## 1. Propósito
 
-Organizar las dependencias del backend monolítico para AC03 Mantenibilidad. El estilo global sigue siendo monolítico; Clean Architecture no crea servicios adicionales.
+Definir cómo se organizan las responsabilidades y dependencias internas del **monolito modular** del Sistema Web para la Gestión y Publicación de Prácticas Preprofesionales de la UNSCH. Este enfoque complementa el estilo global descrito en `../estilo-arquitectonico.md`: una sola aplicación desplegable organizada en módulos de negocio.
 
-## Capas dentro de cada módulo
+## 2. Enfoque seleccionado
 
-| Capa | Responsabilidad | Ejemplo |
+**Clean Architecture (Arquitectura Limpia)**, con las dependencias del código dirigidas hacia el núcleo del negocio. Las reglas de dominio y los casos de uso no deben depender de React, del framework del backend, de PostgreSQL, Redis, RabbitMQ ni de la API externa de SIGA.
+
+## 3. Módulos de negocio
+
+La aplicación se organizará inicialmente en módulos lógicos como:
+
+- **Usuarios y Autenticación:** identidad, acceso y roles.
+- **Ofertas:** publicación, edición, cierre y búsqueda de oportunidades.
+- **Postulaciones:** registro, validación de requisitos, prevención de duplicados y seguimiento.
+- **Convenios:** seguimiento del ciclo de vida de los convenios.
+- **Notificaciones:** preparación y envío de avisos.
+- **Integración Académica:** acceso a los datos de elegibilidad mediante un adaptador autorizado.
+
+Estos módulos forman parte del mismo backend desplegable. Cada uno debe exponer una interfaz interna clara y evitar acceder directamente a las clases o tablas internas de los demás módulos. Los nombres se ajustarán a la implementación real.
+
+## 4. Capas y responsabilidades
+
+| Capa | Responsabilidad | Ejemplos aplicados al sistema |
 |---|---|---|
-| Dominio | Entidades, reglas y transiciones independientes de tecnología. | Postulacion y su estado. |
-| Aplicación | Casos de uso, coordinación y contratos requeridos. | RegistrarPostulacion; ConsultaOfertas y VerificadorAcademico. |
-| Presentación | Controladores, DTO, autenticación y traducción HTTP. | POST /api/v1/postulaciones. |
-| Infraestructura | Implementar puertos mediante tecnología concreta. | PostulacionRepositoryPostgres y verificador de antecedentes en PostgreSQL. |
+| **Dominio** | Entidades, objetos de valor, invariantes y reglas esenciales del negocio. | Oferta, Postulación, Convenio; impedir postulaciones duplicadas y validar transiciones de estado. |
+| **Aplicación** | Casos de uso, coordinación del flujo y puertos/interfaces requeridos por el negocio. | PublicarOferta, BuscarOfertas, RegistrarPostulacion, ConsultarEstadoPostulacion, ActualizarEstadoConvenio y GenerarNotificacion. |
+| **Presentación** | Adaptadores de entrada: controladores HTTP, validación de solicitudes y respuestas DTO. El cliente React consume la API. | Endpoints REST para ofertas, postulaciones y convenios; formularios y vistas del portal web. |
+| **Infraestructura** | Implementaciones técnicas de los puertos: persistencia, integración externa, mensajería y configuración del framework. | Repositorios PostgreSQL, adaptador de SIGA, cliente de correo/SMS y, si se justifica, adaptadores Redis o RabbitMQ. |
 
-Dominio no importa otras capas. Aplicación depende de dominio e interfaces internas. Presentación e infraestructura dependen de aplicación; la composición ensambla implementaciones. El frontend React consume HTTP, sin acceder directamente a datos.
+## 5. Regla de dependencias
 
-~~~mermaid
+1. El dominio no importa clases de las demás capas.
+2. Aplicación utiliza el dominio y define interfaces para las capacidades externas que necesita.
+3. Presentación invoca casos de uso; no implementa reglas centrales del negocio.
+4. Infraestructura implementa las interfaces definidas por el núcleo y puede depender de librerías técnicas.
+5. Los módulos interactúan mediante interfaces o servicios de aplicación explícitos, no mediante acceso indiscriminado a sus clases internas.
+6. El ensamblaje de dependencias se realiza en el punto de composición de la aplicación.
+
+Por ejemplo, el caso de uso `RegistrarPostulacion` debería utilizar una interfaz `PostulacionRepository`. La implementación concreta que persiste en PostgreSQL se ubica en infraestructura. Así se puede probar la regla de evitar duplicados usando un repositorio simulado, sin levantar una base de datos real.
+
+## 6. Diagrama de Clean Architecture
+
+```mermaid
 flowchart TB
-    C["Controlador REST"] --> U["Caso de uso"]
-    U --> D["Dominio"]
-    U --> P["Puertos internos"]
-    A["Adaptadores PostgreSQL"] -.->|"Implementan"| P
-    A --> DB[("PostgreSQL")]
-~~~
+    UI["Portal React / Cliente HTTP"] --> CTRL["Presentación: controladores REST y DTO"]
+    CTRL --> UC["Aplicación: casos de uso"]
+    UC --> ENT["Dominio: entidades y reglas de negocio"]
+    UC --> PORT["Puertos e interfaces"]
+    REPO["Infraestructura: repositorios PostgreSQL"] -. implementa .-> PORT
+    ADAPT["Adaptadores SIGA / correo-SMS"] -. implementa .-> PORT
+    DB[(PostgreSQL)] --> REPO
+    EXTAPI["SIGA / proveedor de correo-SMS"] --> ADAPT
+    CONFIG["Composición y configuración"] -. ensambla .-> CTRL
+    CONFIG -. ensambla .-> REPO
+    CONFIG -. ensambla .-> ADAPT
+```
 
-Las flechas sólidas entre capas indican dependencia de código. La flecha hacia PostgreSQL representa acceso técnico del adaptador.
+El diagrama es conceptual y muestra las capas internas de la aplicación. La regla esencial es que el dominio y los casos de uso no importen infraestructura.
 
-## Contratos entre módulos
+## 7. Ejemplo: registrar una postulación
 
-Postulaciones no implementa un repositorio SQL para leer las tablas de Ofertas. Define o consume un contrato público ConsultaOfertas, implementado por la fachada del módulo Ofertas; esa fachada utiliza su propio repositorio privado. La misma regla aplica a Empresas, Verificación Académica y Reportes.
+1. El estudiante envía la solicitud desde el portal web.
+2. El controlador REST valida el formato de entrada y llama al caso de uso.
+3. El caso de uso verifica las reglas del dominio y consulta los puertos necesarios.
+4. El adaptador de integración consulta la elegibilidad académica si existe acceso autorizado a SIGA.
+5. El repositorio persiste la postulación en PostgreSQL.
+6. El controlador transforma el resultado en una respuesta HTTP.
 
-La composición conecta esas fachadas en el mismo proceso. No se llama por HTTP a módulos internos. Una unidad de trabajo permite coordinar transacciones PostgreSQL sin compartir acceso directo a tablas.
+Las comprobaciones críticas —por ejemplo, no postular dos veces a la misma oferta— deben protegerse también en la persistencia mediante una restricción adecuada o una operación transaccional, para evitar duplicados ante solicitudes concurrentes.
 
-## Cambio localizado en el backend
+## 8. Beneficios para DA06 — Mantenibilidad
 
-Cambiar una consulta SQL de antecedentes académicos modifica el adaptador de Verificación Académica y sus pruebas. Mientras se conserve el contrato, no cambia RegistrarPostulacion, el controlador ni la API pública. EQ-04 mide precisamente este cambio.
+- **Cambios localizados:** modificar el proveedor de correo o el acceso a datos no obliga a reescribir las reglas de postulación.
+- **Pruebas unitarias:** los casos de uso se prueban con dobles de prueba para repositorios y servicios externos.
+- **Menor acoplamiento:** la lógica del negocio no conoce detalles de HTTP, SQL ni SDK externos.
+- **Evolución controlada:** cada cambio puede asociarse con un requisito, un caso de uso y una prueba.
+- **Revisión más sencilla:** los límites entre capas y módulos permiten detectar dependencias indebidas.
 
-Una modificación real de reglas académicas puede afectar al dominio y requerirá sus propias pruebas; no se promete que todo cambio pueda resolverse exclusivamente en infraestructura.
+## 9. Criterios de verificación
 
-## Criterios de revisión
+- El dominio no importa frameworks, controladores, ORM ni clientes externos.
+- Los casos de uso se pueden probar sin conexión real a PostgreSQL, SIGA o servicios de mensajería.
+- Los contratos de repositorios e integraciones están definidos en el núcleo y sus implementaciones en infraestructura.
+- Los controladores no contienen reglas de negocio centrales.
+- Las pruebas cubren elegibilidad, duplicidad de postulaciones y transiciones de estado.
+- Los módulos no acceden directamente a detalles internos de otros módulos.
 
-1. Dominio y casos de uso no importan el framework, ORM ni detalles de SIGA.
-2. Los controladores obtienen la identidad autenticada y no aceptan roles declarados por el cliente.
-3. Los casos de uso pueden probarse con dobles de los contratos públicos y repositorios.
-4. Solo cada módulo conoce sus tablas y repositorios internos.
-5. La base de datos es únicamente PostgreSQL y las notificaciones son internas.
-6. Unicidad, transacciones, errores y autorizaciones se verifican también mediante pruebas de integración.
+## 10. Alcance de esta propuesta
 
-Ver [Diseño interno](../../03-diseno-de-software/diseno-interno/01-diseno-interno.md). Esta organización sigue siendo una propuesta hasta disponer de código ejecutable.
+Este documento define una guía de organización arquitectónica, no afirma que las capas ya estén implementadas en el código. La aplicación efectiva debe realizarse gradualmente y contrastarse con la estructura real del backend.

@@ -1,69 +1,75 @@
-# Registro de decisiones arquitectónicas
+# Registro de Decisiones Arquitectónicas (ADR)
 
-Estado general: decisiones de diseño para la entrega académica, pendientes de implementación y validación. Esta revisión reemplaza las propuestas anteriores de infraestructura adicional y alinea la documentación con tres atributos y una carga de 20 a 25 usuarios simultáneos.
+Este documento registra las decisiones principales para el Sistema Web para la Gestión y Publicación de Prácticas Preprofesionales de la UNSCH. Las decisiones se derivan de los drivers y atributos documentados en `analisis-de-sistema/`.
 
-## ADR-001 — Backend monolítico con PostgreSQL
+> **Estado:** propuestas para la arquitectura del proyecto. Deben validarse con el equipo y con las restricciones reales de infraestructura antes de implementar tecnologías adicionales.
 
-- Estado: seleccionado.
-- Contexto: presupuesto académico, carga objetivo de 20 a 25 usuarios y funcionalidades estrechamente relacionadas.
-- Drivers: DA01, DA02, DA04; RC04, RC05.
-- Decisión: una aplicación backend desplegable con módulos internos y PostgreSQL como única base. Servir los archivos compilados del portal desde ese despliegue.
-- Alternativas: monolito sin límites internos, monolito modular, microservicios.
-- Justificación: mantener desarrollo, transacciones y operación manejables.
-- Consecuencias: todos los módulos se actualizan juntos; una falla puede afectar al conjunto; los límites deben revisarse. La capacidad se demuestra con mediciones.
+## ADR-001 — Monolito modular como estilo arquitectónico
 
-## ADR-002 — Clean Architecture y contratos públicos
+- **Estado:** Seleccionado para la primera versión.
+- **Contexto:** El sistema reúne capacidades relacionadas: autenticación, publicación de ofertas, postulaciones, convenios, notificaciones e integración académica. El proyecto necesita límites claros, pero también una implementación y despliegue manejables.
+- **Drivers relacionados:** DA01 — Centralización; DA04 — Evolución modular; DA05 — Comunicación estandarizada mediante API REST; DA06 — Mantenibilidad. Atributos AC01 y AC05.
+- **Decisión:** Construir una única aplicación backend desplegable, organizada en módulos de negocio con interfaces internas explícitas. El portal web consumirá una API REST. Los módulos compartirán inicialmente PostgreSQL, con reglas de acceso y límites internos definidos.
+- **Alternativas consideradas:** monolito tradicional sin límites modulares, monolito modular y microservicios.
+- **Justificación:** ofrece menor complejidad de despliegue, pruebas y operación que los microservicios, sin renunciar a separar responsabilidades dentro del código.
+- **Consecuencias positivas:** una primera versión más sencilla de construir y mantener; transacciones locales más simples; límites que pueden facilitar pruebas y evolución.
+- **Costes y riesgos:** el backend se despliega como una unidad; un módulo mal diseñado puede acoplarse a otros; el escalamiento inicial suele ser de toda la aplicación.
+- **Condición de revisión:** reconsiderar la extracción de un módulo a un servicio independiente solo si existen necesidades demostradas de escalamiento, despliegue autónomo, aislamiento o trabajo de equipos independientes.
 
-- Estado: seleccionado.
-- Drivers: DA04, DA06; AC03.
-- Decisión: dominio y aplicación definen reglas y puertos; presentación e infraestructura dependen del núcleo. Los módulos se comunican en memoria mediante contratos públicos.
-- Alternativas: lógica en controladores, capas sin control de dependencias.
-- Consecuencias: permite pruebas aisladas; requiere mantener interfaces y evitar abstracciones innecesarias.
-- Verificación: dominio sin importaciones del framework/ORM; EQ-04 sin cambios fuera del adaptador afectado.
+## ADR-002 — Clean Architecture dentro del monolito modular
 
-## ADR-003 — Simplificar tareas del backend
+- **Estado:** Seleccionado como enfoque interno propuesto.
+- **Contexto:** La evolución de los flujos de ofertas, postulaciones y convenios no debe acoplar las reglas del negocio a la interfaz web, al framework backend ni a la persistencia.
+- **Drivers relacionados:** DA06 — Mantenibilidad; DA04 — Evolución modular. Atributo AC05.
+- **Decisión:** Organizar el código con Dominio, Aplicación, Presentación e Infraestructura, conservando módulos de negocio identificables dentro de la misma aplicación. Las dependencias del código apuntan hacia el dominio y los casos de uso.
+- **Alternativas consideradas:** capas tradicionales sin una regla estricta de dependencias; lógica de negocio dentro de controladores; arquitectura hexagonal.
+- **Justificación:** permite probar las reglas sin levantar infraestructura y sustituir adaptadores técnicos con cambios localizados.
+- **Consecuencias positivas:** menor acoplamiento, pruebas unitarias más simples y responsabilidades explícitas.
+- **Costes y riesgos:** requiere disciplina en el diseño de interfaces y evita que se creen abstracciones sin una necesidad real.
+- **Criterio de validación:** los casos de uso pueden probarse con dobles de prueba y el dominio no importa frameworks, ORM ni clientes externos.
 
-- Estado: seleccionado; sustituye la evaluación previa de caché y mensajería para esta entrega.
-- Drivers: DA02; RC05.
-- Decisión: no incorporar Redis, RabbitMQ, microservicios ni bases adicionales. Resolver búsqueda, notificaciones internas, auditoría y reportes en el backend con PostgreSQL.
-- Alternativas: caché externa, broker, proveedor de correo y worker independiente.
-- Consecuencias: menos componentes operativos; se deben controlar consultas y duración de transacciones. No se promete entrega de correo/SMS.
-- Verificación: EQ-01/EQ-02; no confundir una optimización futura hipotética con el diseño base.
+## ADR-003 — Redis y RabbitMQ condicionados a evidencia
 
-## ADR-004 — Verificación académica operable sin integración confirmada
+- **Estado:** Incorporación condicionada a validación.
+- **Contexto:** se esperan picos estacionales de consulta de ofertas y el envío de notificaciones puede ser independiente de la respuesta inmediata al usuario.
+- **Drivers relacionados:** DA02 — Picos de demanda estacionales; DA06 — Mantenibilidad. Atributos AC02 y AC05.
+- **Decisión:** considerar Redis para datos de lectura frecuente y RabbitMQ para tareas asíncronas, como notificaciones, solo cuando los escenarios de carga o los requisitos operativos lo justifiquen.
+- **Alternativas consideradas:** consultas directas a PostgreSQL y notificaciones síncronas en la primera versión.
+- **Justificación:** caché y mensajería pueden reducir carga y desacoplar tareas, pero también introducen invalidación de caché, reintentos, monitoreo y consistencia eventual.
+- **Consecuencias positivas:** potencial mejora de rendimiento y aislamiento de procesos lentos.
+- **Costes y riesgos:** nueva infraestructura y posibles fallos de sincronización o entrega.
+- **Criterio de validación:** documentar mediciones de latencia/carga y garantizar reintentos, idempotencia y trazabilidad antes de depender de mensajería.
 
-- Estado: seleccionado para la base; SIGA condicionado a autorización.
-- Drivers: DA03; RF04, RC02.
-- Decisión: definir VerificadorAcademico. La base consulta antecedentes del periodo vigente verificados por el coordinador y registrados con evidencia de fuente y fecha en PostgreSQL. Un futuro adaptador SIGA conserva el contrato.
-- Alternativas: exigir una API externa no disponible; aceptar datos declarados por el estudiante.
-- Consecuencias: requiere revisión institucional y actualización de antecedentes; no se acepta postulación con verificación ausente o caducada.
-- Verificación: elegible, no elegible, falta de antecedentes, datos fuera de periodo y fallas técnicas. Las pruebas simuladas no acreditan integración real.
+## ADR-004 — Integración con SIGA mediante un adaptador
 
-## ADR-005 — Propiedad modular y transacciones
+- **Estado:** Propuesto, sujeto a disponibilidad de acceso institucional.
+- **Contexto:** RF04 requiere comprobar requisitos académicos de los estudiantes, mientras RC02 establece que el sistema no reemplaza al sistema académico institucional.
+- **Drivers relacionados:** DA03 — Integración con sistemas legados; DA06 — Mantenibilidad.
+- **Decisión:** encapsular la comunicación con SIGA detrás de una interfaz o puerto de aplicación y una implementación adaptadora en infraestructura.
+- **Alternativas consideradas:** invocar la API externa directamente desde el caso de uso; duplicar localmente la lógica del sistema académico.
+- **Justificación:** aísla cambios del contrato externo y evita que la lógica de negocio dependa de detalles específicos de SIGA.
+- **Consecuencias positivas:** integración reemplazable y pruebas con respuestas simuladas.
+- **Costes y riesgos:** es necesario gestionar indisponibilidad, tiempos de espera, errores y cambios de contrato del sistema externo.
+- **Criterio de validación:** los casos de uso no importan SDK ni modelos específicos de SIGA; las fallas de integración se manejan explícitamente. Si no hay acceso, se documentará una alternativa temporal sin afirmar que la integración real está implementada.
 
-- Estado: seleccionado.
-- Drivers: DA04, DA07; RF05, RF09; AC02, AC03.
-- Decisión: Empresas posee perfil y aprobación; Usuarios posee credenciales. Postulaciones consulta un contrato público de Ofertas y otro de Verificación Académica. Cada módulo escribe sus propias tablas.
-- Decisión transaccional: en un mismo proceso y PostgreSQL, una unidad de trabajo compartida permite que contratos de escritura autorizados participen de la misma transacción sin exponer tablas. Fallar una escritura obligatoria revierte la operación.
-- Consecuencias: restricción única estudiante–oferta; cambios de estado, auditoría y notificaciones obligatorias se confirman juntos. Ofertas conserva versiones de requisitos y participa en el bloqueo/revalidación antes de aceptar una candidatura.
-- Verificación: duplicados concurrentes, cierre de oferta durante postulación y rollback de fallos parciales.
+## ADR-005 — Contratos, pruebas y documentación para mantenibilidad
 
-## ADR-006 — Bumeran como referencia funcional de contenedores y REST
+- **Estado:** Propuesto.
+- **Contexto:** el sistema debe poder evolucionar sin que un cambio local genere modificaciones innecesarias en otros módulos.
+- **Drivers relacionados:** DA04 — Evolución modular; DA06 — Mantenibilidad. Atributo AC05.
+- **Decisión:** definir interfaces entre módulos, mantener pruebas automatizadas de reglas de negocio y de integración, y registrar las decisiones que cambien los límites o dependencias del sistema.
+- **Alternativas consideradas:** depender de convenciones no documentadas y validar cambios únicamente mediante pruebas manuales.
+- **Justificación:** los contratos y las pruebas hacen más visible el impacto de un cambio y ayudan a prevenir regresiones.
+- **Consecuencias positivas:** revisiones más claras, cambios más localizados y mayor confianza para refactorizar.
+- **Costes y riesgos:** esfuerzo inicial para mantener pruebas y documentación actualizadas.
+- **Criterios de validación:** reglas clave de postulación y permisos cubiertas por pruebas; contratos documentados; decisiones relevantes registradas en ADR.
 
-- Estado: seleccionado.
-- Drivers: DA05; RC06.
-- Decisión: relacionar las responsabilidades conceptuales de interfaz, procesamiento y persistencia con los flujos de empresa, aviso y candidato. Diseñar nuestra API con recursos propios de empresas, ofertas y postulaciones.
-- Alternativas: imitar tecnología interna no documentada; depender de endpoints privados.
-- Consecuencias: el C2 describe nuestro monolito; las rutas REST son propuestas UNSCH. Las extensiones académicas tienen contratos propios.
-- Evidencia: fuentes funcionales enlazadas en arquitectura-inicial.md y api-rest.md.
+## Resumen de trazabilidad
 
-## Trazabilidad
-
-| Decisión | Referencias | Evidencia esperada |
+| Decisión | Drivers principales | Resultado esperado |
 |---|---|---|
-| ADR-001 | DA01, DA02, DA04; RC05 | Una aplicación y PostgreSQL; pruebas de carga. |
-| ADR-002 | DA06; AC03 | Pruebas aisladas y EQ-04. |
-| ADR-003 | DA02; AC01 | EQ-01/EQ-02 con 20 y 25 usuarios. |
-| ADR-004 | DA03; RF04 | Verificación académica trazable y fallos explícitos. |
-| ADR-005 | DA04, DA07; RF05, RF09 | Pruebas de integridad, límites y autorización. |
-| ADR-006 | DA05; RC06 | Correspondencia funcional y contratos REST propios. |
+| ADR-001 Monolito modular | DA01, DA04, DA05, DA06 | Una aplicación desplegable con módulos y contratos internos claros. |
+| ADR-002 Clean Architecture | DA06, DA04 | Dependencias dirigidas hacia dominio y aplicación. |
+| ADR-003 Redis/RabbitMQ condicionados | DA02, DA06 | Optimización basada en mediciones y tareas asíncronas justificadas. |
+| ADR-004 Adaptador SIGA | DA03, DA06 | Integración externa aislada y sujeta a acceso autorizado. |
+| ADR-005 Contratos y pruebas | DA04, DA06 | Menos regresiones y mantenimiento más predecible. |
