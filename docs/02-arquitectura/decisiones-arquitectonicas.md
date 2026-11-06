@@ -8,7 +8,7 @@ Este documento registra las decisiones principales para el Sistema Web para la G
 
 - **Estado:** Seleccionado para la primera versión.
 - **Contexto:** El sistema reúne capacidades relacionadas: autenticación, publicación de ofertas, postulaciones, convenios, notificaciones e integración académica. El proyecto necesita límites claros, pero también una implementación y despliegue manejables.
-- **Drivers relacionados:** DA01 — Centralización; DA04 — Evolución modular; DA05 — Comunicación estandarizada mediante API REST; DA06 — Mantenibilidad. Atributos AC01 y AC05.
+- **Drivers relacionados:** DA01 — Centralización; DA04 — Evolución modular; DA05 — Comunicación estandarizada mediante API REST; DA06 — Mantenibilidad. Atributos AC03.
 - **Decisión:** Construir una única aplicación backend desplegable, organizada en módulos de negocio con interfaces internas explícitas. El portal web consumirá una API REST. Los módulos compartirán inicialmente PostgreSQL, con reglas de acceso y límites internos definidos.
 - **Alternativas consideradas:** monolito tradicional sin límites modulares, monolito modular y microservicios.
 - **Justificación:** ofrece menor complejidad de despliegue, pruebas y operación que los microservicios, sin renunciar a separar responsabilidades dentro del código.
@@ -20,7 +20,7 @@ Este documento registra las decisiones principales para el Sistema Web para la G
 
 - **Estado:** Seleccionado como enfoque interno propuesto.
 - **Contexto:** La evolución de los flujos de ofertas, postulaciones y convenios no debe acoplar las reglas del negocio a la interfaz web, al framework backend ni a la persistencia.
-- **Drivers relacionados:** DA06 — Mantenibilidad; DA04 — Evolución modular. Atributo AC05.
+- **Drivers relacionados:** DA06 — Mantenibilidad; DA04 — Evolución modular. Atributo AC03.
 - **Decisión:** Organizar el código con Dominio, Aplicación, Presentación e Infraestructura, conservando módulos de negocio identificables dentro de la misma aplicación. Las dependencias del código apuntan hacia el dominio y los casos de uso.
 - **Alternativas consideradas:** capas tradicionales sin una regla estricta de dependencias; lógica de negocio dentro de controladores; arquitectura hexagonal.
 - **Justificación:** permite probar las reglas sin levantar infraestructura y sustituir adaptadores técnicos con cambios localizados.
@@ -28,17 +28,15 @@ Este documento registra las decisiones principales para el Sistema Web para la G
 - **Costes y riesgos:** requiere disciplina en el diseño de interfaces y evita que se creen abstracciones sin una necesidad real.
 - **Criterio de validación:** los casos de uso pueden probarse con dobles de prueba y el dominio no importa frameworks, ORM ni clientes externos.
 
-## ADR-003 — Redis y RabbitMQ condicionados a evidencia
+## ADR-003 — PostgreSQL como única persistencia
 
-- **Estado:** Incorporación condicionada a validación.
-- **Contexto:** se esperan picos estacionales de consulta de ofertas y el envío de notificaciones puede ser independiente de la respuesta inmediata al usuario.
-- **Drivers relacionados:** DA02 — Picos de demanda estacionales; DA06 — Mantenibilidad. Atributos AC02 y AC05.
-- **Decisión:** considerar Redis para datos de lectura frecuente y RabbitMQ para tareas asíncronas, como notificaciones, solo cuando los escenarios de carga o los requisitos operativos lo justifiquen.
-- **Alternativas consideradas:** consultas directas a PostgreSQL y notificaciones síncronas en la primera versión.
-- **Justificación:** caché y mensajería pueden reducir carga y desacoplar tareas, pero también introducen invalidación de caché, reintentos, monitoreo y consistencia eventual.
-- **Consecuencias positivas:** potencial mejora de rendimiento y aislamiento de procesos lentos.
-- **Costes y riesgos:** nueva infraestructura y posibles fallos de sincronización o entrega.
-- **Criterio de validación:** documentar mediciones de latencia/carga y garantizar reintentos, idempotencia y trazabilidad antes de depender de mensajería.
+- **Estado:** seleccionado para esta entrega.
+- **Contexto:** carga académica objetivo de 20 y 25 usuarios simultáneos y necesidad de mantener el backend monolítico.
+- **Drivers relacionados:** DA02; AC01 Rendimiento; RC05.
+- **Decisión:** utilizar PostgreSQL para datos de negocio, avisos internos y auditoría. Optimizar filtros, índices y paginación; no incluir Redis, RabbitMQ, brokers, bases adicionales ni microservicios.
+- **Alternativas consideradas:** caché externa y mensajería; se descartan del alcance de esta entrega.
+- **Consecuencias:** menos componentes operativos; notificaciones y reportes se gestionan dentro del backend. La capacidad real se verifica mediante EQ-01 y EQ-02, no se presume.
+- **Criterio de validación:** medir p95 y errores por separado con 20 y 25 usuarios simultáneos.
 
 ## ADR-004 — Integración con SIGA mediante un adaptador
 
@@ -56,7 +54,7 @@ Este documento registra las decisiones principales para el Sistema Web para la G
 
 - **Estado:** Propuesto.
 - **Contexto:** el sistema debe poder evolucionar sin que un cambio local genere modificaciones innecesarias en otros módulos.
-- **Drivers relacionados:** DA04 — Evolución modular; DA06 — Mantenibilidad. Atributo AC05.
+- **Drivers relacionados:** DA04 — Evolución modular; DA06 — Mantenibilidad. Atributo AC03.
 - **Decisión:** definir interfaces entre módulos, mantener pruebas automatizadas de reglas de negocio y de integración, y registrar las decisiones que cambien los límites o dependencias del sistema.
 - **Alternativas consideradas:** depender de convenciones no documentadas y validar cambios únicamente mediante pruebas manuales.
 - **Justificación:** los contratos y las pruebas hacen más visible el impacto de un cambio y ayudan a prevenir regresiones.
@@ -70,6 +68,6 @@ Este documento registra las decisiones principales para el Sistema Web para la G
 |---|---|---|
 | ADR-001 Monolito modular | DA01, DA04, DA05, DA06 | Una aplicación desplegable con módulos y contratos internos claros. |
 | ADR-002 Clean Architecture | DA06, DA04 | Dependencias dirigidas hacia dominio y aplicación. |
-| ADR-003 Redis/RabbitMQ condicionados | DA02, DA06 | Optimización basada en mediciones y tareas asíncronas justificadas. |
+| ADR-003 PostgreSQL único | DA02 | Backend monolítico sin persistencia ni mensajería adicional; medir con 20 y 25 usuarios. |
 | ADR-004 Adaptador SIGA | DA03, DA06 | Integración externa aislada y sujeta a acceso autorizado. |
 | ADR-005 Contratos y pruebas | DA04, DA06 | Menos regresiones y mantenimiento más predecible. |

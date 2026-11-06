@@ -4,7 +4,7 @@
 Propuesta de sistema web para la Universidad Nacional de San Cristóbal de Huamanga (UNSCH), elaborada como parte del curso de Arquitectura de Software. Busca centralizar la gestión de prácticas preprofesionales para estudiantes, empresas y coordinadores.
 
 ## Estilo arquitectónico
-Se propone un **monolito modular** con una API REST y **Clean Architecture** como enfoque interno. El backend será una única aplicación desplegable organizada en módulos de Usuarios y Autenticación, Ofertas, Postulaciones, Convenios, Notificaciones, Integración Académica y Reportes y Auditoría. PostgreSQL es la persistencia de la primera versión; Redis y RabbitMQ no forman parte de la arquitectura inicial y solo se evaluarán si los requisitos y las mediciones lo justifican. Como referencia funcional se toma el portal de empleo Bumeran (ver [Arquitectura inicial](docs/02-arquitectura/arquitectura-inicial.md)).
+Se propone un **monolito modular** con una API REST y **Clean Architecture** como enfoque interno. El backend será una única aplicación desplegable organizada en módulos de Usuarios y Autenticación, Ofertas, Postulaciones, Convenios, Notificaciones, Integración Académica y Reportes y Auditoría. PostgreSQL es la persistencia de la primera versión; PostgreSQL es la única base de datos; no se incluyen caché externa, brokers ni microservicios. Se conservan los siete módulos originales. Como referencia funcional se toma el portal de empleo Bumeran (ver [Arquitectura inicial](docs/02-arquitectura/arquitectura-inicial.md)).
 
 ## Documentación
 La documentación del proyecto se organiza en `docs/` y los ejemplos tecnológicos en `tecnologia/`.
@@ -17,6 +17,7 @@ La documentación del proyecto se organiza en `docs/` y los ejemplos tecnológic
 - [Drivers arquitectónicos](docs/01-analisis-de-sistema/06-driver-arquitectonicos.md)
 - [Escenarios medibles de atributos de calidad](docs/01-analisis-de-sistema/08-escenarios-atributos-calidad.md)
 - [Arquitectura inicial](docs/02-arquitectura/arquitectura-inicial.md)
+- [API REST con referencia funcional Bumeran](docs/02-arquitectura/api-rest.md)
 - [Estilo arquitectónico](docs/02-arquitectura/estilo-arquitectonico.md)
 - [Enfoque de Clean Architecture](docs/02-arquitectura/enfoque/enfoque-arquitectonico.md)
 - [Decisiones arquitectónicas (ADR)](docs/02-arquitectura/decisiones-arquitectonicas.md)
@@ -25,4 +26,4 @@ La documentación del proyecto se organiza en `docs/` y los ejemplos tecnológic
 - [Ejemplos tecnológicos de Clean Architecture](tecnologia/clean-architecture/README.md)
 
 ## Estado
-Los documentos describen una propuesta arquitectónica. Los diagramas C4, escenarios de calidad y ejemplos de código se completarán y validarán durante la Guía 4.
+Los documentos describen una propuesta arquitectónica. Los diagramas de arquitectura inicial y estilo se conservan con los siete módulos explicados. Se priorizan tres atributos (rendimiento, seguridad y mantenibilidad) y pruebas con 20 y 25 usuarios simultáneos. Código ejecutable y resultados de prueba siguen pendientes.
