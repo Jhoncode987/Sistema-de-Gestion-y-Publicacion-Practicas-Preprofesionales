@@ -1,76 +1,96 @@
-# Escenarios medibles de atributos de calidad
+# Escenarios de atributos de calidad
 
-Se evalúan los tres atributos AC01 Rendimiento, AC02 Seguridad y AC03 Mantenibilidad. **20 y 25 se interpretan como usuarios simultáneos, no como cantidad de escenarios.** Se usa 25 como carga máxima objetivo de esta entrega.
+Este documento convierte los atributos generales en escenarios que puedan verificarse. Las medidas numéricas son **objetivos iniciales propuestos**, no resultados de pruebas; deben validarse con el equipo y con la infraestructura disponible.
 
-Todas las medidas son criterios de aceptación propuestos. No se han ejecutado pruebas ni obtenido resultados.
+Cada escenario identifica fuente, estímulo, artefacto, entorno, respuesta, medida y forma de verificación.
 
-## Protocolo común de carga
+## EQ-01. Rendimiento: búsqueda de ofertas
 
-- Preparar un entorno de prueba con un backend monolítico y PostgreSQL. Registrar CPU, RAM, sistema operativo, versiones, configuración, latencia de red y commit probado.
-- Semilla propuesta: 1 000 ofertas, 100 empresas, 5 000 postulaciones y 25 cuentas de estudiante con antecedentes académicos verificados del periodo vigente. Usar datos ficticios reproducibles, nunca datos personales reales.
-- Un usuario virtual mantiene una sesión autenticada, realiza una operación y espera 2 segundos antes de la siguiente; cada usuario tiene como máximo una solicitud en curso.
-- Ejecutar por separado con **20 y 25 usuarios simultáneos**: 1 minuto de subida, 2 minutos de calentamiento y 10 minutos de medición estable. Calcular las métricas únicamente sobre la fase estable y registrar el número de solicitudes de cada operación.
-- Medir latencia HTTP de extremo a extremo, p50, p95, máximo, solicitudes por segundo y porcentaje de fallos. Un timeout o 5xx es fallo técnico; un 4xx esperado se registra por separado. Una operación que debía ser válida y devuelve un error también incumple el escenario.
-- Repetir el mismo conjunto de datos desde una copia inicial para cada nivel de carga. Adjuntar script, semilla, parámetros y resultados.
-
-## EQ-01 — AC01 Rendimiento: búsqueda de ofertas
-
-| Elemento | Definición |
+| Elemento | Descripción |
 |---|---|
-| Fuente | 20 estudiantes y, en una ejecución separada, 25 estudiantes autenticados. |
-| Estímulo | Cada usuario consulta ofertas compatibles alternando filtros de modalidad y páginas de 20 resultados. |
-| Artefacto | GET /api/v1/ofertas, módulo Ofertas y PostgreSQL. |
-| Entorno | Protocolo común, con ofertas publicadas y vigentes de varias carreras y ciclos. |
-| Respuesta | Devuelve únicamente resultados autorizados y compatibles, con paginación estable. |
-| Medida | En cada ejecución, p95 ≤ 2 segundos y fallos < 1 %; cero ofertas no publicadas o incompatibles en las respuestas verificadas. |
-| Verificación | Guardar latencias y errores; contrastar filtros, visibilidad y paginación con la semilla. |
-| Estado | Pendiente de implementación y ejecución. |
+| Atributo | Rendimiento |
+| Fuente | Estudiante que consulta ofertas |
+| Estímulo | Realiza una búsqueda o aplica filtros por carrera, ciclo o modalidad |
+| Artefacto | API REST, módulo de Ofertas y consultas a PostgreSQL |
+| Entorno | Datos representativos y prueba de carga documentada |
+| Respuesta | Devuelve resultados pertinentes sin errores inesperados |
+| Medida propuesta | Percentil 95 de respuesta ≤ 2 segundos y errores técnicos < 1 % con 100 usuarios simultáneos |
+| Verificación | Ejecutar una prueba de carga, guardar configuración, resultados, latencias y errores |
+| Estado | Pendiente de validación |
 
-## EQ-02 — AC01 Rendimiento: postulación y concurrencia
+## EQ-02. Disponibilidad: consulta de ofertas
 
-| Elemento | Definición |
+| Elemento | Descripción |
 |---|---|
-| Fuente | 20 estudiantes y, en otra ejecución, 25 estudiantes con antecedentes verificados. |
-| Estímulo | Cada usuario envía postulaciones a combinaciones estudiante–oferta distintas y válidas; se reinicia la semilla entre ejecuciones. |
-| Artefacto | POST /api/v1/postulaciones, verificación académica local, transacción y PostgreSQL. |
-| Entorno | Protocolo común; ofertas vigentes sin cierre o edición concurrente durante la fase de latencia. |
-| Respuesta | Registra la postulación y su notificación interna; devuelve 201 sin exceder una postulación por pareja. |
-| Medida | En cada nivel, p95 ≤ 3 segundos y fallos < 1 % para solicitudes válidas. |
-| Verificación | Contrastar respuestas con filas persistidas. Ejecutar además una ráfaga separada de 25 solicitudes simultáneas de la misma cuenta a la misma oferta: exactamente una fila, una respuesta 201 y 24 respuestas 409; cero 5xx. |
-| Estado | Pendiente de implementación y ejecución. |
+| Atributo | Disponibilidad |
+| Fuente | Estudiante o empresa |
+| Estímulo | Intenta consultar ofertas durante el horario de uso previsto |
+| Artefacto | Frontend, API REST y base de datos |
+| Entorno | Sistema desplegado y con monitoreo |
+| Respuesta | Permite consultar ofertas o devuelve un error controlado si una dependencia no está disponible |
+| Medida propuesta | Objetivo inicial de disponibilidad mensual de 99,5 %, sujeto a capacidad y presupuesto de despliegue |
+| Verificación | Revisar monitoreo y calcular tiempo disponible e interrupciones |
+| Estado | Pendiente de definir cómo se medirá y qué mantenimiento se excluye |
 
-La ráfaga de duplicados mide RF05 y se registra aparte; sus respuestas 409 esperadas no se mezclan con las métricas de postulaciones válidas. Las vacantes limitan selecciones, no el número de candidaturas.
+## EQ-03. Escalabilidad: aumento de solicitudes
 
-## EQ-03 — AC02 Seguridad: rol, propiedad y ámbito
-
-| Elemento | Definición |
+| Elemento | Descripción |
 |---|---|
-| Fuente | 25 cuentas: 15 estudiantes, 5 empresas, 3 coordinadores, 1 administrador y 1 cuenta con permiso de reportes de la Oficina. También se prueban solicitudes sin credenciales. |
-| Estímulo | Ejecutar una matriz fija de 50 solicitudes no autorizadas y 25 solicitudes autorizadas sobre recursos propios, ajenos y de otra escuela. |
-| Artefacto | Autenticación y autorización del backend; endpoints de empresas, ofertas, postulaciones, convenios, prácticas, reportes y roles. |
-| Entorno | Semilla con recursos de al menos dos escuelas y propietarios diferentes; operaciones válidas y estados conocidos. |
-| Respuesta | Sin credenciales válidas: 401. Con identidad válida pero sin permiso: 403. Con permiso y solicitud válida: respuesta 2xx prevista. No exponer datos ni alterar recursos en operaciones denegadas. |
-| Medida | 50/50 intentos no autorizados rechazados, cero datos protegidos expuestos y cero escrituras indebidas; 25/25 controles autorizados exitosos. |
-| Verificación | Versionar matriz con identidad, rol, recurso, ámbito, estado previo, respuesta esperada y obtenida. Comparar registros de negocio antes y después; los registros de seguridad se revisan aparte. |
-| Estado | Pendiente de construir la matriz y ejecutar pruebas. |
+| Atributo | Escalabilidad |
+| Fuente | Aumento de usuarios concurrentes |
+| Estímulo | Crece la cantidad de solicitudes de búsqueda y postulación |
+| Artefacto | Backend modular y PostgreSQL |
+| Entorno | Prueba reproducible con una configuración y conjunto de datos documentados |
+| Respuesta | Soporta la carga objetivo sin superar los límites acordados |
+| Medida propuesta | Probar incrementos de 25, 50 y 100 usuarios; buscar percentil 95 ≤ 3 segundos y errores < 1 % en la carga acordada |
+| Verificación | Comparar latencia, errores y uso de recursos en cada nivel de carga |
+| Estado | Pendiente de ejecutar; estos valores no son resultados obtenidos |
 
-Los 50 casos incluyen lectura de postulaciones ajenas, edición de ofertas de otra empresa, autoaprobación de empresa/oferta, acceso de coordinador a otra escuela, exportación sin permiso y cambio de roles no autorizado. La matriz debe asignar un identificador y resultado esperado a cada caso antes de ejecutar.
+## EQ-04. Seguridad: autorización por rol
 
-## EQ-04 — AC03 Mantenibilidad: cambio localizado en el backend
-
-| Elemento | Definición |
+| Elemento | Descripción |
 |---|---|
-| Fuente | Desarrollador que modifica la persistencia de consulta académica. |
-| Estímulo | Cambiar la consulta SQL y el mapeo del adaptador de antecedentes académicos, conservando el contrato VerificadorAcademico. |
-| Artefacto | Adaptador PostgreSQL del módulo Verificación Académica. |
-| Entorno | Backend implementado con módulos y pruebas; mismo conjunto de contratos antes y después del cambio. |
-| Respuesta | El cambio queda en infraestructura del módulo y sus pruebas; no altera dominio, casos de uso, controladores, API pública ni otros módulos. |
-| Medida | Cero archivos de producción modificados fuera de infraestructura de Verificación Académica; 100 % de las pruebas previamente aprobadas del caso de uso y sus contratos siguen pasando. |
-| Verificación | Revisar diff y reportes de pruebas antes/después; incluir elegible, no elegible, antecedentes ausentes y error de persistencia. |
-| Estado | Pendiente de implementación y pruebas. |
+| Atributo | Seguridad |
+| Fuente | Usuario no autenticado o con permisos insuficientes |
+| Estímulo | Intenta consultar o modificar un recurso protegido |
+| Artefacto | API REST y operaciones de negocio protegidas |
+| Entorno | Pruebas con usuarios de distintos roles y solicitudes sin credenciales |
+| Respuesta | Rechaza la operación no autorizada y no modifica ni expone información protegida |
+| Medida | 100 % de los casos no autorizados definidos en el conjunto de pruebas deben ser rechazados |
+| Verificación | Ejecutar pruebas por rol y revisar códigos HTTP, datos devueltos y cambios persistidos |
+| Estado | Pendiente de definir la matriz de permisos y ejecutar las pruebas |
 
-Este escenario no requiere usuarios simultáneos porque mide un cambio de código. No se inventa una carga de usuarios para un atributo que no se mide con concurrencia.
+## EQ-05. Mantenibilidad: cambio localizado
 
-## Registro de resultados
+| Elemento | Descripción |
+|---|---|
+| Atributo | Mantenibilidad |
+| Fuente | Equipo de desarrollo |
+| Estímulo | Cambia una regla de elegibilidad o una implementación de persistencia |
+| Artefacto | Caso de uso de Postulaciones y sus dependencias |
+| Entorno | Código organizado por módulos y con pruebas automatizadas |
+| Respuesta | El cambio queda limitado al módulo o adaptador correspondiente, salvo dependencias justificadas |
+| Medida propuesta | Las pruebas del módulo afectado pasan y las pruebas de regresión de los módulos relacionados no presentan fallos nuevos |
+| Verificación | Ejecutar pruebas unitarias e integración antes y después del cambio; revisar archivos afectados |
+| Estado | Pendiente de establecer y ejecutar la suite de pruebas |
 
-Para cada ejecución guardar fecha, commit, entorno, semilla, usuarios, duración, número de solicitudes, p95, errores y evidencia de integridad o autorización. Solo se declara cumplido un escenario cuando exista esa evidencia. No se establece un objetivo adicional de disponibilidad en esta entrega.
+## EQ-06. Integridad: evitar postulaciones duplicadas
+
+| Elemento | Descripción |
+|---|---|
+| Atributo | Integridad de datos |
+| Fuente | Estudiante que envía solicitudes repetidas o concurrentes |
+| Estímulo | Intenta postular más de una vez a la misma oferta |
+| Artefacto | Caso de uso Registrar Postulación y persistencia |
+| Entorno | Solicitudes secuenciales y concurrentes para el mismo estudiante y oferta |
+| Respuesta | Conserva una sola postulación válida por estudiante y oferta y comunica el resultado de forma controlada |
+| Medida | Cero duplicados en el conjunto de pruebas, incluyendo solicitudes concurrentes |
+| Verificación | Ejecutar pruebas de repetición y concurrencia; comprobar reglas de aplicación y restricciones de base de datos |
+| Estado | Pendiente de implementación y pruebas |
+
+## Notas de validación
+
+- Los umbrales son propuestas iniciales que deben aprobarse y ajustarse al contexto del proyecto.
+- No afirmar que un atributo está satisfecho hasta ejecutar y registrar las pruebas.
+- La disponibilidad real dependerá de la infraestructura y el presupuesto que se definan posteriormente.
+- Los resultados deben registrar fecha, entorno, configuración, carga aplicada, métricas y observaciones.

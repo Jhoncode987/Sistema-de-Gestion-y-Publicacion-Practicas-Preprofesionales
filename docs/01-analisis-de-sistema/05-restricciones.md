@@ -1,12 +1,8 @@
-# Restricciones del sistema
+# Restricciones del Sistema
 
-| ID | Restricción | Consecuencia |
+| ID | Restricción | Descripción |
 |---|---|---|
-| RC01 | Sin pagos | No gestionar pagos, planes comerciales ni avisos destacados. |
-| RC02 | Independencia del sistema académico | No reemplazar matrícula ni notas. SIGA solo se consulta mediante acceso institucional autorizado; la base funciona con antecedentes del periodo vigente verificados por el coordinador y registrados en PostgreSQL. Sin verificación válida no se acepta una postulación. |
-| RC03 | Ámbito UNSCH | Gestionar oportunidades, postulaciones, convenios y seguimiento de prácticas de la universidad; quedan fuera la evaluación curricular y la certificación oficial. |
-| RC04 | Presupuesto académico | Proponer ejecución en infraestructura universitaria o entorno académico de bajo costo. El presupuesto limita la solución; la ausencia de pagos no elimina las necesidades de seguridad, respaldo y restauración. No se promete disponibilidad de producción sin medición. |
-| RC05 | Backend monolítico y PostgreSQL | Una sola aplicación backend y una sola base de datos PostgreSQL. Los módulos son internos. Sin microservicios, bases adicionales, caché externa ni broker de mensajes en la versión base. Notificaciones internas, auditoría y reportes se resuelven en el backend con PostgreSQL. |
-| RC06 | Referencia funcional Bumeran | Inspirar capacidades y contratos de nuestra API en los flujos observables de candidatos, empresas, avisos y postulaciones. No consumir una API privada de Bumeran ni atribuirle nuestro stack, contenedores o arquitectura interna. |
-
-La carga de evaluación se limita a 20 y 25 usuarios simultáneos. El proveedor de infraestructura y el framework del backend siguen pendientes; no existe todavía evidencia de despliegue ejecutable.
+| **RC01** | Limitaciones Financieras | El sistema no contempla ni gestiona pagos, transacciones monetarias, ni subvenciones económicas asociadas a las prácticas. |
+| **RC02** | Independencia del Core | La solución no reemplaza al sistema académico institucional (matrícula, notas, campus virtual); solo se integra con él (ej. SIGA) para consultar datos de elegibilidad del alumno. |
+| **RC03** | Ámbito Institucional | El alcance está limitado a gestionar las prácticas de la UNSCH; no incluye la gestión de prácticas fuera de este ámbito ni la evaluación curricular o certificación oficial. |
+| **RC04** | Despliegue e Infraestructura | Dado que no maneja información financiera crítica, el sistema debe ser capaz de desplegarse en infraestructura propia de la universidad o en nubes de nivel académico/gratuito para mitigar costos. |

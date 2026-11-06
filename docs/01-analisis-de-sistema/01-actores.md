@@ -1,11 +1,9 @@
-# Actores del sistema
+# Actores del Sistema
 
-| Actor | Responsabilidad y límite de acceso |
+| Actor | ¿Qué necesita realizar? |
 |---|---|
-| Estudiante | Consultar ofertas publicadas compatibles con su carrera y ciclo; postular en su nombre y consultar sus postulaciones, práctica y notificaciones. |
-| Empresa | Registrar su perfil; enviar ofertas a revisión cuando esté validada; administrar sus propias ofertas y evaluar únicamente a quienes postulan a ellas. No aprueba su registro ni sus ofertas. |
-| Coordinador de Prácticas | Aprobar o rechazar empresas y ofertas; verificar antecedentes académicos cuando no exista integración autorizada; supervisar convenios y prácticas dentro de su escuela asignada. |
-| Administrador | Administrar cuentas, roles y asignaciones institucionales, y consultar auditoría. Este rol no sustituye automáticamente al coordinador en decisiones académicas. |
-| Personal de la Oficina de Prácticas | Consultar dashboard y exportar reportes institucionales. Se implementa como permiso de lectura y exportación asignado a una cuenta identificada; una oficina no es una credencial compartida. |
-
-La autorización se aplica en el backend por rol, propiedad del recurso y ámbito institucional. Ver RF08 y AC02.
+| **Estudiante** | Buscar ofertas filtradas por su carrera y ciclo, postular a vacantes y consultar el estado de sus postulaciones en todo momento. |
+| **Empresa** | Registrarse para validación, publicar ofertas de prácticas indicando requisitos y evaluar a los postulantes para su selección. |
+| **Coordinador de Prácticas** | Validar el registro de las empresas, aprobar o rechazar las ofertas antes de ser publicadas y dar seguimiento al estado de los convenios de cada estudiante. |
+| **Administrador** | Gestionar la seguridad, configurar los roles del sistema y auditar las acciones administrativas. |
+| **Oficina de Prácticas Preprofesionales** | Consumir informes, generar reportes exportables y visualizar el dashboard con el estado general de las prácticas por escuela. |

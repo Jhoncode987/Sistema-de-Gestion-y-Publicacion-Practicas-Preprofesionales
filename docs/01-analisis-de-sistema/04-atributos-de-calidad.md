@@ -1,13 +1,19 @@
-# Atributos de calidad
+# Atributos de Calidad
 
-Se priorizan **exactamente tres atributos**, conforme al alcance académico. Los códigos se redefinen en esta revisión y todas las referencias de la documentación se alinean con esta tabla.
+Los escenarios completos y medibles se encuentran en [08-escenarios-atributos-calidad.md](08-escenarios-atributos-calidad.md).
 
-| ID | Atributo | Aplicación en la arquitectura | Verificación |
-|---|---|---|---|
-| AC01 | Rendimiento | Backend monolítico y PostgreSQL; consultas filtradas, índices, paginación y transacciones breves para la carga acordada de 20 y 25 usuarios simultáneos. | EQ-01 y EQ-02: medir p95, errores y duración de la prueba en ambos niveles de carga. |
-| AC02 | Seguridad | Autenticación, autorización por rol/propiedad/ámbito en el backend y auditoría de operaciones sensibles. | EQ-03: solicitudes autorizadas y no autorizadas de 25 cuentas de prueba; comprobar respuestas y datos persistidos. |
-| AC03 | Mantenibilidad | Módulos internos y Clean Architecture; contratos públicos entre módulos y adaptadores para PostgreSQL y verificación académica. | EQ-04: cambio localizado en un adaptador y ejecución de pruebas de regresión. |
+| ID | Atributo de Calidad | Escenario de Calidad |
+|---|---|---|
+| **AC01** | Escalabilidad y modularidad | El backend se organizará como un monolito modular, con módulos de Usuarios y Autenticación, Ofertas, Postulaciones, Convenios, Notificaciones e Integración Académica. Los límites internos facilitarán el mantenimiento y permitirán escalar inicialmente la aplicación completa. La extracción futura de un módulo a un servicio independiente requerirá una justificación técnica específica. |
+| **AC02** | Rendimiento | Se medirán los tiempos de respuesta y el comportamiento en periodos de alta demanda. Se evaluará Redis para las ofertas consultadas con frecuencia y RabbitMQ para tareas asíncronas, como notificaciones, solo cuando los escenarios de carga o los requisitos lo justifiquen. |
+| **AC03** | Seguridad | El sistema validará roles y permisos para estudiantes, empresas, coordinadores y administradores. Se propone autenticación basada en tokens JWT, autorización en las operaciones protegidas y registro de auditoría para acciones administrativas. El control de permisos no dependerá únicamente de la interfaz web. |
+| **AC04** | Usabilidad | La plataforma centralizará en una interfaz web única, propuesta con React, los procesos que antes se realizaban de forma dispersa, facilitando el acceso a ofertas, postulaciones y seguimiento de prácticas. |
+| **AC05** | Mantenibilidad | El código se organizará en módulos con responsabilidades claras y dependencias controladas. Los cambios en presentación, persistencia o integraciones externas deberán poder realizarse sin modificar innecesariamente las reglas del negocio. Se favorecerán contratos explícitos, pruebas automatizadas y documentación de decisiones arquitectónicas. |
 
-La prevención de duplicados es una regla funcional de integridad de RF05, incluida en la verificación de postulación; no se cuenta como un cuarto atributo. La modularidad es una decisión de diseño que contribuye a AC03.
+## Criterios de verificación
 
-Los valores son objetivos propuestos, no resultados obtenidos. Ver [escenarios medibles](08-escenarios-atributos-calidad.md).
+- **AC01:** los módulos tienen responsabilidades e interfaces internas identificables y evitan acceder directamente a detalles internos de otros módulos.
+- **AC02:** se medirán tiempos de respuesta y comportamiento bajo carga antes y después de incorporar caché o mensajería.
+- **AC03:** las pruebas verificarán permisos por rol, protección de endpoints y trazabilidad de operaciones sensibles.
+- **AC04:** estudiantes y empresas podrán completar los flujos principales mediante una interfaz consistente y comprensible.
+- **AC05:** los casos de uso podrán probarse sin depender directamente de la base de datos, del framework web o de proveedores externos.
