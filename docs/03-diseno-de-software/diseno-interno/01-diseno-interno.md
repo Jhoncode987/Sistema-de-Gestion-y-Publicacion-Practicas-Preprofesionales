@@ -1,6 +1,6 @@
 # Diseño interno del sistema de prácticas preprofesionales UNSCH
 
-**Estado:** propuesta de diseño para el Sprint 01. Este documento describe responsabilidades, interfaces y flujos previstos; no afirma que estas clases o módulos estén implementados. Los nombres son conceptuales y podrán ajustarse cuando se confirme la tecnología del backend.
+**Estado:** propuesta de diseño para el Sprint 01. Este documento describe responsabilidades, interfaces y flujos previstos; no afirma que todas estas clases o módulos estén implementados: hasta ahora solo existe el listado de ofertas del módulo Ofertas. Los nombres son conceptuales y podrán ajustarse durante la implementación sobre el stack definido en el ADR-006 (Node.js y Express).
 
 ## 1. Propósito y alcance
 
@@ -217,7 +217,7 @@ Los umbrales de rendimiento deben tomarse de 08-escenarios-atributos-calidad.md 
 ## 11. Supuestos, límites y pendientes
 
 1. Este documento define un diseño propuesto, no código ejecutable ni evidencia de funcionalidades terminadas.
-2. React y PostgreSQL son tecnologías propuestas en la documentación de arquitectura; se deben confirmar contra la implementación antes de presentarlas como stack definitivo.
+2. El stack (Node.js, Express, React y PostgreSQL) está confirmado en el ADR-006 y verificado con el listado de ofertas; el resto de las funciones sigue pendiente de implementación.
 3. El acceso a SIGA requiere autorización institucional. Sin ella, se debe acordar una alternativa operativa para validar elegibilidad; no se debe simular una validación exitosa.
 4. Los avisos de la versión base son internos y se almacenan en PostgreSQL; no se requiere proveedor de correo.
 5. PostgreSQL es la única base y los módulos se ejecutan dentro del backend monolítico.

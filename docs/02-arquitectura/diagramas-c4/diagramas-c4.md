@@ -90,9 +90,9 @@ Las reglas de aprobación del coordinador, verificación académica y convenio s
 
 | Contenedor | Responsabilidad | Origen / justificación |
 |---|---|---|
-| Portal web React (propuesto) | Interfaz para cada tipo de usuario; presenta ofertas, formularios y estados. | DA01, DA05 y RF01–RF10. La tecnología es una propuesta, no una confirmación del stack implementado. |
+| Portal web React | Interfaz para cada tipo de usuario; presenta ofertas, formularios y estados. | DA01, DA05 y RF01–RF10. React con Vite, confirmado en el ADR-006; hoy solo implementa el listado de ofertas. |
 | Backend / API REST | Autorización, reglas de negocio, casos de uso y contratos HTTP. | RF01–RF10, DA01, DA04 y DA05. |
-| PostgreSQL (propuesto) | Persistir usuarios, ofertas, postulaciones, convenios y auditoría. | RF01–RF10; la selección de motor es una decisión arquitectónica propuesta. |
+| PostgreSQL | Persistir usuarios, ofertas, postulaciones, convenios y auditoría. | RF01–RF10; motor confirmado en el ADR-003; hoy existen las tablas de empresas y ofertas. |
 | SIGA externo | Proveer información académica para validar elegibilidad, si existe acceso autorizado. | RF04, RC02, DA03. |
 
 ### Módulos lógicos dentro del backend
@@ -160,7 +160,7 @@ flowchart TB
 
 ## C4 — Diagrama de código del componente RegistrarPostulacion
 
-**Propósito:** mostrar las clases e interfaces principales que implementan el caso de uso. Es un diseño conceptual; los nombres pueden ajustarse cuando se confirme el lenguaje y framework del backend.
+**Propósito:** mostrar las clases e interfaces principales que implementan el caso de uso. Es un diseño conceptual; los nombres pueden ajustarse durante la implementación (backend en Node.js con Express, ADR-006).
 
 ```mermaid
 classDiagram
@@ -247,7 +247,7 @@ classDiagram
 ## Decisiones y límites conocidos
 
 1. La arquitectura seleccionada es monolito modular con API REST y Clean Architecture; no se proponen microservicios en esta etapa.
-2. React y PostgreSQL son tecnologías propuestas en los documentos. Deben contrastarse con el repositorio de código antes de presentarlas como implementación.
+2. React, Node.js con Express y PostgreSQL están confirmados en el ADR-006 y se verifican con el listado de ofertas; los demás casos de uso siguen sin implementar.
 3. La integración con SIGA depende de acceso autorizado; las notificaciones base son internas en PostgreSQL.
 4. El despliegue en nube se documentará en una etapa posterior, tal como se acordó para el proyecto.
 5. Los diagramas C1–C4 mantienen el mismo límite de sistema, los mismos actores y nombres coherentes entre niveles.

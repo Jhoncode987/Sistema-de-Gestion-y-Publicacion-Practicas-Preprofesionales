@@ -1,16 +1,20 @@
-# React + Vite
+# Portal web de prácticas preprofesionales (UNSCH)
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Interfaz en React 19 con Vite. Por ahora muestra el listado de ofertas de prácticas que devuelve el backend.
 
-Currently, two official plugins are available:
+## Ejecución
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+```
+npm install
+npm run dev      # http://localhost:5173
+npm run build    # genera la carpeta dist
+npm run lint
+```
 
-## React Compiler
+El backend debe estar en `http://localhost:3000`. En desarrollo, Vite redirige las peticiones de `/api` hacia el backend (ver `vite.config.js`). Para desplegar el frontend por separado habrá que definir la URL de la API, porque ese proxy solo existe en desarrollo.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Estructura
 
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+- `src/App.jsx`: página principal, carga las ofertas desde `/api/v1/ofertas`.
+- `src/App.css` e `src/index.css`: estilos. Los colores están definidos como variables al inicio de `App.css`.
+- `public/logo-unsch.png`: logo institucional.

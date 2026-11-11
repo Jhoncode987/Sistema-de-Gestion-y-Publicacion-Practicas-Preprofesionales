@@ -25,5 +25,34 @@ La documentación del proyecto se organiza en `docs/` y los ejemplos tecnológic
 - [Diseño interno](docs/03-diseno-de-software/diseno-interno/01-diseno-interno.md)
 - [Ejemplos tecnológicos de Clean Architecture](tecnologia/clean-architecture/README.md)
 
+## Tecnología
+- **Backend:** Node.js con Express 5 y el cliente `pg` (SQL explícito, sin ORM).
+- **Frontend:** React 19 con Vite.
+- **Base de datos:** PostgreSQL, con un esquema por módulo.
+
+La decisión está registrada en el [ADR-006](docs/02-arquitectura/decisiones-arquitectonicas.md).
+
+## Ejecución local
+1. Crea una base de datos en PostgreSQL y carga el esquema y los datos de prueba:
+   ```
+   psql -d nombre_de_la_base -f backend/migrations/001_crear_empresas_y_ofertas.sql
+   psql -d nombre_de_la_base -f backend/database/001_datos_prueba.sql
+   ```
+2. Backend (puerto 3000):
+   ```
+   cd backend
+   cp .env.example .env     # completa los datos de tu PostgreSQL
+   npm install
+   node server.cjs
+   ```
+   Comprueba que responde en `http://localhost:3000/api/v1/salud`.
+3. Frontend (puerto 5173):
+   ```
+   cd frontend
+   npm install
+   npm run dev
+   ```
+   Abre `http://localhost:5173`. Vite redirige `/api` al backend.
+
 ## Estado
-Los documentos describen una propuesta arquitectónica. Los diagramas de arquitectura inicial y estilo se conservan con los siete módulos explicados. Se priorizan tres atributos (rendimiento, seguridad y mantenibilidad) y pruebas con 20 y 25 usuarios simultáneos. Código ejecutable y resultados de prueba siguen pendientes.
+Los documentos describen una propuesta arquitectónica. Los diagramas de arquitectura inicial y estilo se conservan con los siete módulos explicados. Se priorizan tres atributos (rendimiento, seguridad y mantenibilidad) y pruebas con 20 y 25 usuarios simultáneos. Hay una primera implementación ejecutable: el listado de ofertas (backend en Express y portal en React, sobre PostgreSQL). Las demás funciones, las pruebas automatizadas y los resultados de prueba siguen pendientes.
