@@ -62,6 +62,21 @@ Este documento registra las decisiones principales para el Sistema Web para la G
 - **Costes y riesgos:** esfuerzo inicial para mantener pruebas y documentación actualizadas.
 - **Criterios de validación:** reglas clave de postulación y permisos cubiertas por pruebas; contratos documentados; decisiones relevantes registradas en ADR.
 
+## ADR-006 — Stack tecnológico: Node.js, Express, React y PostgreSQL
+
+- **Estado:** seleccionado; implementado parcialmente (listado de ofertas).
+- **Contexto:** la propuesta inicial dejaba pendiente el lenguaje y framework del backend. Para comenzar la implementación se necesitaba confirmar el stack, con un equipo pequeño y una infraestructura de bajo costo (RC04).
+- **Drivers relacionados:** DA04 — Evolución modular; DA05 — Comunicación estandarizada mediante API REST; DA06 — Mantenibilidad; RC04.
+- **Decisión:**
+  - **Backend:** Node.js con Express 5, módulos CommonJS (`.cjs`), acceso a PostgreSQL con el cliente `pg` mediante SQL explícito (sin ORM) y configuración por variables de entorno (`dotenv`).
+  - **Frontend:** React 19 con Vite, que consume la API REST bajo el prefijo `/api/v1`.
+  - **Persistencia:** PostgreSQL con un esquema por módulo (hoy `ofertas`) y migraciones SQL versionadas en `backend/migrations`.
+  - **Estructura del código:** `backend/src/modules/<modulo>/{dominio,aplicacion,infraestructura,presentacion}`, con el ensamblaje de dependencias en `backend/server.cjs`.
+- **Alternativas consideradas:** frameworks con más estructura impuesta (por ejemplo NestJS o Spring Boot) y el uso de un ORM; se descartan por añadir más estructura y curva de aprendizaje de la que necesita un monolito de este tamaño.
+- **Consecuencias positivas:** un solo lenguaje en frontend y backend; despliegue simple de una sola aplicación; el SQL es visible, lo que facilita revisar las restricciones de integridad (por ejemplo la unicidad de RF05).
+- **Costes y riesgos:** Express no impone estructura, por lo que los límites entre módulos y la regla de dependencias se mantienen por convención y revisión; sin ORM, el mapeo de datos y las migraciones son manuales; aún no existen pruebas automatizadas.
+- **Criterio de validación:** cada módulo respeta la estructura de carpetas; la capa de aplicación no importa `express` ni `pg`; los casos de uso se prueban con un repositorio simulado (pendiente).
+
 ## Resumen de trazabilidad
 
 | Decisión | Drivers principales | Resultado esperado |
@@ -71,3 +86,4 @@ Este documento registra las decisiones principales para el Sistema Web para la G
 | ADR-003 PostgreSQL único | DA02 | Backend monolítico sin persistencia ni mensajería adicional; medir con 20 y 25 usuarios. |
 | ADR-004 Adaptador SIGA | DA03, DA06 | Integración externa aislada y sujeta a acceso autorizado. |
 | ADR-005 Contratos y pruebas | DA04, DA06 | Menos regresiones y mantenimiento más predecible. |
+| ADR-006 Stack Node.js, Express, React y PostgreSQL | DA04, DA05, DA06 | Stack confirmado; estructura por módulo y SQL explícito. |

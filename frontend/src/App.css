@@ -1,30 +1,73 @@
 :root {
-  --granate: #5c0000;
+  --granate-oscuro: #5c0000;
+  --granate: #7a2e35;
   --granate-suave: #712b2f;
   --dorado: #d9ad32;
+  --azul-marino: #0d2b4a;
   --texto: #292524;
   --secundario: #6b625f;
   --borde: #e7ded8;
+  --ancho: 1100px;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
+.barra-superior__interior,
+.cabecera__interior,
+.hero__interior,
+.pie__interior,
 .contenedor {
-  width: min(100% - 40px, 1100px);
+  width: min(100% - 40px, var(--ancho));
   margin: 0 auto;
-  padding: 36px 0 60px;
 }
 
-/* Cabecera institucional */
-.cabecera {
+/* Barra superior granate, como el sitio institucional */
+.barra-superior {
+  background: var(--granate-oscuro);
+  color: #fff;
+  font-size: 12px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+.barra-superior__interior {
   display: flex;
   align-items: center;
-  gap: 32px;
-  padding: 32px;
-  margin-bottom: 40px;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 0;
+}
+
+.barra-superior a {
+  padding: 4px 14px;
+  background: var(--granate);
+  color: #fff;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.barra-superior a:hover {
+  background: var(--granate-suave);
+}
+
+/* Cabecera blanca con logo y navegación */
+.cabecera {
+  position: sticky;
+  top: 0;
+  z-index: 10;
   background: #fff;
-  border-top: 7px solid var(--granate);
-  border-bottom: 4px solid var(--dorado);
-  border-radius: 12px;
-  box-shadow: 0 5px 20px rgb(92 0 0 / 5%);
+  border-bottom: 3px solid var(--dorado);
+  box-shadow: 0 3px 12px rgb(92 0 0 / 8%);
+}
+
+.cabecera__interior {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 12px 0;
 }
 
 .enlace-logo {
@@ -33,45 +76,120 @@
 
 .logo-unsch {
   display: block;
-  width: 230px;
+  width: 190px;
   max-width: 100%;
   height: auto;
 }
 
-.titulo-portal {
-  padding-left: 30px;
-  border-left: 1px solid var(--borde);
+.navegacion {
+  display: flex;
+  gap: 28px;
 }
 
-.institucion {
-  margin: 0 0 8px;
-  color: var(--granate-suave);
-  font-size: 12px;
+.navegacion a {
+  padding: 6px 0;
+  border-bottom: 2px solid transparent;
+  color: var(--texto);
+  font-size: 15px;
+  letter-spacing: 0.5px;
+  text-decoration: none;
+}
+
+.navegacion a:hover,
+.navegacion a[aria-current="page"] {
+  border-bottom-color: var(--granate-oscuro);
+  color: var(--granate-oscuro);
+}
+
+/* Portada */
+.hero {
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(105deg, rgb(92 0 0 / 96%) 35%, rgb(122 46 53 / 88%)),
+    var(--granate-oscuro);
+  color: #fff;
+}
+
+/* Escudo institucional como marca de agua */
+.hero::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: max(2vw, calc((100% - var(--ancho)) / 2 - 40px));
+  width: min(46vw, 520px);
+  aspect-ratio: 724 / 303;
+  background: url("/logo-unsch.png") center / contain no-repeat;
+  filter: brightness(0) invert(1);
+  opacity: 0.1;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.hero__interior {
+  position: relative;
+  z-index: 1;
+  padding: 72px 0 80px;
+}
+
+.hero__etiqueta {
+  display: inline-block;
+  margin: 0 0 14px;
+  padding-bottom: 8px;
+  border-bottom: 3px solid var(--dorado);
+  color: var(--dorado);
+  font-size: 13px;
   font-weight: 700;
-  letter-spacing: 2px;
+  letter-spacing: 3px;
   text-transform: uppercase;
 }
 
-h1 {
-  margin: 0 0 12px;
-  color: var(--granate);
-  font-size: clamp(26px, 4vw, 38px);
-  line-height: 1.2;
+.hero h1 {
+  max-width: 14ch;
+  margin: 0 0 16px;
+  font-size: clamp(34px, 6vw, 60px);
+  line-height: 1.1;
 }
 
-.titulo-portal > p:last-child {
-  margin: 0;
-  color: var(--secundario);
+.hero__texto {
+  max-width: 46ch;
+  margin: 0 0 28px;
+  color: rgb(255 255 255 / 88%);
+  font-size: 18px;
 }
 
-h2 {
-  margin-bottom: 12px;
-  color: var(--granate);
-  font-size: 25px;
+.boton-dorado {
+  display: inline-block;
+  padding: 13px 30px;
+  border-radius: 999px;
+  background: var(--dorado);
+  color: var(--granate-oscuro);
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-decoration: none;
+}
+
+.boton-dorado:hover {
+  background: #e6bf55;
+}
+
+/* Contenido */
+.contenedor {
+  padding: 56px 0 72px;
+  scroll-margin-top: 90px;
+}
+
+.titulo-seccion {
+  margin: 0 0 24px;
+  padding-bottom: 12px;
+  border-bottom: 3px solid var(--dorado);
+  color: var(--granate-oscuro);
+  font-size: 28px;
+  display: inline-block;
 }
 
 .resultado {
-  margin-bottom: 24px;
+  margin: 0 0 24px;
   color: var(--secundario);
 }
 
@@ -87,14 +205,20 @@ h2 {
   padding: 28px;
   background: #fff;
   border: 1px solid var(--borde);
-  border-top: 4px solid var(--granate-suave);
+  border-top: 5px solid var(--granate-oscuro);
   border-radius: 12px;
-  box-shadow: 0 4px 14px rgb(0 0 0 / 3%);
+  box-shadow: 0 4px 14px rgb(0 0 0 / 4%);
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.tarjeta:hover {
+  box-shadow: 0 10px 26px rgb(92 0 0 / 14%);
+  transform: translateY(-3px);
 }
 
 .tarjeta h3 {
   margin: 18px 0 8px;
-  color: var(--granate);
+  color: var(--granate-oscuro);
   font-size: 23px;
   line-height: 1.35;
 }
@@ -154,7 +278,7 @@ button {
   padding: 11px 18px;
   border: none;
   border-radius: 8px;
-  background: var(--granate);
+  background: var(--granate-oscuro);
   color: #fff;
   font: inherit;
   cursor: pointer;
@@ -164,37 +288,108 @@ button:hover {
   background: var(--granate-suave);
 }
 
-button:focus-visible,
-.enlace-logo:focus-visible {
+a:focus-visible,
+button:focus-visible {
   outline: 3px solid var(--dorado);
-  outline-offset: 4px;
+  outline-offset: 3px;
+}
+
+/* Pie de página azul marino */
+.pie {
+  background: var(--azul-marino);
+  border-top: 4px solid var(--dorado);
+  color: #fff;
+}
+
+.pie__interior {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 28px 0;
+}
+
+.pie__logo {
+  width: 150px;
+  height: auto;
+  filter: brightness(0) invert(1);
+  opacity: 0.9;
+}
+
+.pie p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.pie p span {
+  color: rgb(255 255 255 / 70%);
+  font-size: 13px;
 }
 
 /* Adaptación a celulares */
 @media (max-width: 700px) {
-  .contenedor {
-    width: calc(100% - 28px);
-    padding-top: 20px;
+  .barra-superior {
+    font-size: 11px;
+    letter-spacing: 1px;
   }
 
-  .cabecera {
+  .barra-superior__interior > span {
+    display: none;
+  }
+
+  .barra-superior__interior {
+    justify-content: flex-end;
+  }
+
+  .cabecera__interior {
     flex-direction: column;
     align-items: flex-start;
-    gap: 24px;
-    padding: 24px;
+    gap: 8px;
   }
 
   .logo-unsch {
-    width: 210px;
+    width: 170px;
   }
 
-  .titulo-portal {
-    padding: 20px 0 0;
-    border-left: none;
-    border-top: 1px solid var(--borde);
+  .navegacion {
+    gap: 22px;
+  }
+
+  .hero__interior {
+    padding: 48px 0 56px;
+  }
+
+  .hero::after {
+    width: 90vw;
+    right: -20vw;
+    opacity: 0.07;
+  }
+
+  .contenedor {
+    padding: 40px 0 56px;
   }
 
   .tarjeta {
     padding: 22px;
+  }
+
+  .pie__interior {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .tarjeta {
+    transition: none;
+  }
+
+  .tarjeta:hover {
+    transform: none;
   }
 }

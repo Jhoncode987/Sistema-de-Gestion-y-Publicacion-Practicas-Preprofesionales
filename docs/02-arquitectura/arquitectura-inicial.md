@@ -98,7 +98,7 @@ Cada módulo del backend contiene sus propias capas de Clean Architecture (domin
 - Las reglas de negocio deben estar en el dominio y los casos de uso, no dentro de los controladores HTTP.
 - PostgreSQL es la única base de datos. No se incorporan Redis, RabbitMQ ni microservicios; [ADR-003](decisiones-arquitectonicas.md) documenta esta simplificación.
 - La integración real con SIGA depende de los mecanismos de acceso que autorice la universidad.
-- El diagrama es una propuesta conceptual. Debe actualizarse cuando se confirme la estructura real del código y la tecnología del backend.
+- El diagrama es una propuesta conceptual. El stack (Node.js, Express, React y PostgreSQL) está confirmado en el [ADR-006](decisiones-arquitectonicas.md); hasta ahora solo el módulo Ofertas tiene código (listado de ofertas), y el diagrama debe actualizarse conforme se implementen los demás.
 
 ## Definición detallada de los siete módulos
 

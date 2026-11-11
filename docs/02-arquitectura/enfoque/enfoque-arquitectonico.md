@@ -91,7 +91,7 @@ Las comprobaciones críticas —por ejemplo, no postular dos veces a la misma of
 
 ## 10. Alcance de esta propuesta
 
-Este documento define una guía de organización arquitectónica, no afirma que las capas ya estén implementadas en el código. La aplicación efectiva debe realizarse gradualmente y contrastarse con la estructura real del backend.
+Este documento define una guía de organización arquitectónica. Hasta ahora solo el módulo Ofertas tiene código (`backend/src/modules/ofertas`), con las capas de presentación, aplicación e infraestructura; la capa de dominio y los demás módulos están pendientes. Las reglas "publicada, empresa aprobada y vigente" viven hoy en la consulta SQL del repositorio y deben pasar al dominio cuando se implementen la publicación y la validación de ofertas. El ejemplo real está en [tecnologia/clean-architecture](../../../tecnologia/clean-architecture/README.md).
 ## Límites entre los siete módulos originales
 
 El perfil empresarial se mantiene como subfunción de Ofertas y el seguimiento de práctica como subfunción de Convenios. Postulaciones consulta requisitos a través del contrato público ConsultaOfertas, implementado por la fachada del módulo Ofertas; no implementa un repositorio SQL para leer tablas ajenas.

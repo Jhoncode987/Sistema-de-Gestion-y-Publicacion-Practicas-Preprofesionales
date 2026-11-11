@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
 import "./App.css";
 
+const SITIO_UNSCH = "https://enlinea.unsch.edu.pe/";
+
+// En desarrollo queda vacío y Vite redirige /api al backend.
+// En producción se define VITE_API_URL con la dirección del backend.
+const URL_API = import.meta.env.VITE_API_URL ?? "";
+
 export default function App() {
   const [ofertas, setOfertas] = useState([]);
   const [cargando, setCargando] = useState(true);
@@ -11,7 +17,7 @@ export default function App() {
 
     async function cargarOfertas() {
       try {
-        const respuesta = await fetch("/api/v1/ofertas", {
+        const respuesta = await fetch(`${URL_API}/api/v1/ofertas`, {
           signal: controller.signal
         });
 
@@ -42,103 +48,146 @@ export default function App() {
     return () => controller.abort();
   }, []);
 
+  // La fecha límite es un DATE de PostgreSQL: llega como medianoche UTC,
+  // por eso se formatea en UTC para no mostrar un día menos.
   function formatearFecha(valor) {
     const fecha = new Date(valor);
 
     return Number.isNaN(fecha.getTime())
       ? "Fecha no disponible"
       : fecha.toLocaleDateString("es-PE", {
-          timeZone: "America/Lima"
+          timeZone: "UTC"
         });
   }
 
   return (
-    <main className="contenedor">
+    <>
+      <div className="barra-superior">
+        <div className="barra-superior__interior">
+          <span>Universidad Nacional de San Cristóbal de Huamanga</span>
+          <a href={SITIO_UNSCH} target="_blank" rel="noopener noreferrer">
+            Sitio institucional
+          </a>
+        </div>
+      </div>
+
       <header className="cabecera">
-        <a 
-          className="enlace-logo"
-          href="https://enlinea.unsch.edu.pe/"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <img
-            className="logo-unsch"
-            src="/logo-unsch.png"
-            alt="Universidad Nacional de San Cristóbal de Huamanga"
-          />
-        </a>
-        
-        <div className="titulo-portal">
-          <p className="institucion">Portal de oportunidades</p>
-          <h1>Prácticas preprofesionales</h1>
-          <p>Conectamos tu formación con nuevas experiencias profesionales.</p>
+        <div className="cabecera__interior">
+          <a
+            className="enlace-logo"
+            href={SITIO_UNSCH}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <img
+              className="logo-unsch"
+              src="/logo-unsch.png"
+              alt="Universidad Nacional de San Cristóbal de Huamanga"
+            />
+          </a>
+
+          <nav className="navegacion" aria-label="Principal">
+            <a href="#inicio" aria-current="page">Inicio</a>
+            <a href="#ofertas">Ofertas</a>
+          </nav>
         </div>
       </header>
 
-      <section aria-labelledby="titulo-ofertas">
-        <h2 id="titulo-ofertas">Ofertas disponibles</h2>
-
-        {cargando && <p role="status">Cargando ofertas…</p>}
-
-        {error && (
-          <div className="aviso error" role="alert">
-            <p>{error}</p>
-            <p>Comprueba que el backend esté ejecutándose en el puerto 3000.</p>
-            <button onClick={() => window.location.reload()}>
-              Reintentar
-            </button>
-          </div>
-        )}
-
-        {!cargando && !error && ofertas.length === 0 && (
-          <p className="aviso">No hay ofertas publicadas y vigentes.</p>
-        )}
-
-        {!cargando && !error && ofertas.length > 0 && (
-          <>
-            <p className="resultado">
-              Ofertas mostradas: {ofertas.length}
-            </p>
-
-            <div className="listado">
-              {ofertas.map((oferta) => (
-                <article className="tarjeta" key={oferta.id}>
-                  <span className="etiqueta">
-                    {oferta.modalidad}
-                  </span>
-
-                  <h3>{oferta.titulo}</h3>
-                  <p className="empresa">{oferta.empresa}</p>
-                  <p>{oferta.descripcion}</p>
-
-                  <dl className="detalles">
-                    <div>
-                      <dt>Carrera</dt>
-                      <dd>{oferta.carrera}</dd>
-                    </div>
-                    <div>
-                      <dt>Ciclo mínimo</dt>
-                      <dd>{oferta.ciclo_minimo}</dd>
-                    </div>
-                    <div>
-                      <dt>Créditos mínimos</dt>
-                      <dd>{oferta.creditos_minimos}</dd>
-                    </div>
-                    <div>
-                      <dt>Vacantes</dt>
-                      <dd>{oferta.vacantes}</dd>
-                    </div>
-                    <div>
-                      <dt>Fecha límite</dt>
-                      <dd>{formatearFecha(oferta.fecha_limite)}</dd>
-                    </div>
-                  </dl>
-                </article>
-              ))}
-            </div>
-          </>
-        )}
+      <section className="hero" id="inicio">
+        <div className="hero__interior">
+          <p className="hero__etiqueta">Portal de oportunidades</p>
+          <h1>Prácticas preprofesionales</h1>
+          <p className="hero__texto">
+            Conectamos tu formación con nuevas experiencias profesionales.
+          </p>
+          <a className="boton-dorado" href="#ofertas">
+            Ver ofertas
+          </a>
+        </div>
       </section>
-    </main>
+
+      <main className="contenedor" id="ofertas">
+        <section aria-labelledby="titulo-ofertas">
+          <h2 id="titulo-ofertas" className="titulo-seccion">
+            Ofertas disponibles
+          </h2>
+
+          {cargando && <p role="status">Cargando ofertas…</p>}
+
+          {error && (
+            <div className="aviso error" role="alert">
+              <p>{error}</p>
+              <p>Comprueba que el backend esté en ejecución.</p>
+              <button onClick={() => window.location.reload()}>
+                Reintentar
+              </button>
+            </div>
+          )}
+
+          {!cargando && !error && ofertas.length === 0 && (
+            <p className="aviso">No hay ofertas publicadas y vigentes.</p>
+          )}
+
+          {!cargando && !error && ofertas.length > 0 && (
+            <>
+              <p className="resultado">
+                Ofertas mostradas: {ofertas.length}
+              </p>
+
+              <div className="listado">
+                {ofertas.map((oferta) => (
+                  <article className="tarjeta" key={oferta.id}>
+                    <span className="etiqueta">{oferta.modalidad}</span>
+
+                    <h3>{oferta.titulo}</h3>
+                    <p className="empresa">{oferta.empresa}</p>
+                    <p>{oferta.descripcion}</p>
+
+                    <dl className="detalles">
+                      <div>
+                        <dt>Carrera</dt>
+                        <dd>{oferta.carrera}</dd>
+                      </div>
+                      <div>
+                        <dt>Ciclo mínimo</dt>
+                        <dd>{oferta.ciclo_minimo}</dd>
+                      </div>
+                      <div>
+                        <dt>Créditos mínimos</dt>
+                        <dd>{oferta.creditos_minimos}</dd>
+                      </div>
+                      <div>
+                        <dt>Vacantes</dt>
+                        <dd>{oferta.vacantes}</dd>
+                      </div>
+                      <div>
+                        <dt>Fecha límite</dt>
+                        <dd>{formatearFecha(oferta.fecha_limite)}</dd>
+                      </div>
+                    </dl>
+                  </article>
+                ))}
+              </div>
+            </>
+          )}
+        </section>
+      </main>
+
+      <footer className="pie">
+        <div className="pie__interior">
+          <img
+            className="pie__logo"
+            src="/logo-unsch.png"
+            alt=""
+            aria-hidden="true"
+          />
+          <p>
+            Universidad Nacional de San Cristóbal de Huamanga
+            <br />
+            <span>Portal de prácticas preprofesionales</span>
+          </p>
+        </div>
+      </footer>
+    </>
   );
 }

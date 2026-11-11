@@ -46,4 +46,19 @@ El contrato académico es interno: Postulaciones llama a Integración Académica
 
 ## Estado
 
-Diseño documental pendiente de framework, implementación, OpenAPI y pruebas. Un cambio de adaptador conserva estos contratos mientras no cambie el comportamiento del negocio (AC03).
+El backend usa Node.js con Express 5 (ADR-006). Estado de implementación:
+
+| Ruta | Estado | Observaciones |
+|---|---|---|
+| GET /api/v1/salud | Implementada | Comprobación de que el backend responde; no forma parte del contrato de negocio. |
+| GET /api/v1/salud/db | Implementada | Diagnóstico de la conexión con PostgreSQL. |
+| GET /api/v1/ofertas | Implementada de forma parcial | Devuelve hasta 20 ofertas publicadas, de empresas aprobadas y con fecha límite vigente. Aún no filtra por modalidad, carrera ni ciclo, no pagina y no requiere autenticación. |
+| Resto de rutas de la tabla | Pendientes | |
+
+**Diferencias actuales con el contrato propuesto** (por alinear cuando se amplíe el módulo):
+
+- La respuesta actual es `{ estado, cantidad, ofertas }`; el contrato define `items`, `page`, `pageSize` y `total`.
+- El error actual es `{ estado, mensaje }` con código 503 para cualquier falla; el contrato define `codigo`, `mensaje` y `correlationId`, y distingue 400, 401, 403, 404, 409 y 422.
+- RF03 (mostrar solo las ofertas de la carrera y ciclo del estudiante) requiere autenticación, que todavía no existe.
+
+Pendientes: OpenAPI y pruebas. Un cambio de adaptador conserva estos contratos mientras no cambie el comportamiento del negocio (AC03).

@@ -1,9 +1,11 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Backend de la plataforma de prácticas preprofesionales de la UNSCH",
+  "main": "server.cjs",
   "scripts": {
+    "start": "node server.cjs",
+    "dev": "node --watch server.cjs",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
