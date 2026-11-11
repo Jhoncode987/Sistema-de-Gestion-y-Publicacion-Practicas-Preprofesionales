@@ -36,6 +36,7 @@ La decisión está registrada en el [ADR-006](docs/02-arquitectura/decisiones-ar
 1. Crea una base de datos en PostgreSQL y carga el esquema y los datos de prueba:
    ```
    psql -d nombre_de_la_base -f backend/migrations/001_crear_empresas_y_ofertas.sql
+   psql -d nombre_de_la_base -f backend/migrations/002_indices_ofertas.sql
    psql -d nombre_de_la_base -f backend/database/001_datos_prueba.sql
    ```
 2. Backend (puerto 3000):
@@ -43,7 +44,7 @@ La decisión está registrada en el [ADR-006](docs/02-arquitectura/decisiones-ar
    cd backend
    cp .env.example .env     # completa los datos de tu PostgreSQL
    npm install
-   node server.cjs
+   npm start          # o npm run dev para reiniciar al guardar
    ```
    Comprueba que responde en `http://localhost:3000/api/v1/salud`.
 3. Frontend (puerto 5173):

@@ -3,6 +3,10 @@ import "./App.css";
 
 const SITIO_UNSCH = "https://enlinea.unsch.edu.pe/";
 
+// En desarrollo queda vacío y Vite redirige /api al backend.
+// En producción se define VITE_API_URL con la dirección del backend.
+const URL_API = import.meta.env.VITE_API_URL ?? "";
+
 export default function App() {
   const [ofertas, setOfertas] = useState([]);
   const [cargando, setCargando] = useState(true);
@@ -13,7 +17,7 @@ export default function App() {
 
     async function cargarOfertas() {
       try {
-        const respuesta = await fetch("/api/v1/ofertas", {
+        const respuesta = await fetch(`${URL_API}/api/v1/ofertas`, {
           signal: controller.signal
         });
 
@@ -113,7 +117,7 @@ export default function App() {
           {error && (
             <div className="aviso error" role="alert">
               <p>{error}</p>
-              <p>Comprueba que el backend esté ejecutándose en el puerto 3000.</p>
+              <p>Comprueba que el backend esté en ejecución.</p>
               <button onClick={() => window.location.reload()}>
                 Reintentar
               </button>

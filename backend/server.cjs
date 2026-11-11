@@ -18,7 +18,7 @@ const {
 } = require("./src/modules/ofertas/presentacion/ofertas.routes.cjs");
 
 const app = express();
-const PORT = 3000;
+const PORT = Number(process.env.PORT) || 3000;
 
 const pool = new Pool({
   connectionTimeoutMillis: 5000
@@ -29,6 +29,25 @@ pool.on("error", () => {
 });
 
 app.use(express.json());
+
+// CORS: solo si se define CORS_ORIGIN (por ejemplo, la URL del frontend desplegado).
+// En desarrollo no hace falta: Vite redirige /api al backend.
+const ORIGEN_PERMITIDO = process.env.CORS_ORIGIN;
+
+if (ORIGEN_PERMITIDO) {
+  app.use((req, res, next) => {
+    res.set("Access-Control-Allow-Origin", ORIGEN_PERMITIDO);
+    res.set("Vary", "Origin");
+    res.set("Access-Control-Allow-Methods", "GET, OPTIONS");
+    res.set("Access-Control-Allow-Headers", "Content-Type");
+
+    if (req.method === "OPTIONS") {
+      return res.sendStatus(204);
+    }
+
+    next();
+  });
+}
 
 // Comprobar que el backend funciona.
 app.get("/api/v1/salud", (req, res) => {
@@ -41,14 +60,11 @@ app.get("/api/v1/salud", (req, res) => {
 // Comprobar la conexión con PostgreSQL.
 app.get("/api/v1/salud/db", async (req, res) => {
   try {
-    const resultado = await pool.query(
-      "SELECT current_database() AS base_de_datos"
-    );
+    await pool.query("SELECT 1");
 
     res.json({
       estado: "ok",
-      mensaje: "Conexión con PostgreSQL exitosa",
-      base_de_datos: resultado.rows[0].base_de_datos
+      mensaje: "Conexión con PostgreSQL exitosa"
     });
   } catch (error) {
     console.error("Falló la conexión a PostgreSQL:", error.code);

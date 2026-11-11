@@ -11,7 +11,9 @@ npm run build    # genera la carpeta dist
 npm run lint
 ```
 
-El backend debe estar en `http://localhost:3000`. En desarrollo, Vite redirige las peticiones de `/api` hacia el backend (ver `vite.config.js`). Para desplegar el frontend por separado habrá que definir la URL de la API, porque ese proxy solo existe en desarrollo.
+El backend debe estar en `http://localhost:3000`. En desarrollo, Vite redirige las peticiones de `/api` hacia el backend (ver `vite.config.js`).
+
+Para desplegar el frontend por separado, define la variable `VITE_API_URL` con la dirección del backend (ver `.env.example`) y, en el backend, `CORS_ORIGIN` con la dirección del frontend.
 
 ## Estructura
 
