@@ -11,6 +11,7 @@ function crearOfertasRouter({ soloEmpresa, ...casosDeUso }) {
   router.get("/mias", soloEmpresa, m.mias);
   router.get("/", m.listar);
   router.post("/", soloEmpresa, m.publicar);
+  router.post("/:id/cerrar", soloEmpresa, m.cerrar);
 
   return router;
 }

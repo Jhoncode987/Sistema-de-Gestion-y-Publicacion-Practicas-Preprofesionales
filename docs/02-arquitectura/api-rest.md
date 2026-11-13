@@ -62,6 +62,8 @@ El backend usa Node.js con Express 5 (ADR-006). Estado de implementación:
 | GET /api/v1/coordinacion/pendientes | Implementada | Solo rol coordinador. Devuelve `{ empresas, ofertas }` con las empresas en `pendiente` y las ofertas en `pendiente_revision`. |
 | POST /api/v1/coordinacion/empresas/{id}/aprobar y /rechazar | Implementada | Solo coordinador. Rechazar exige `{ motivo }` (5 a 500 caracteres). Solo cambia empresas `pendiente`; guarda quién decidió y cuándo. Errores: 404 `NO_ENCONTRADO`, 409 `TRANSICION_INVALIDA`. |
 | POST /api/v1/coordinacion/ofertas/{id}/aprobar y /rechazar | Implementada | Solo coordinador. Publicar exige empresa aprobada y fecha límite vigente (409 `EMPRESA_NO_APROBADA` u `OFERTA_VENCIDA`); rechazar siempre es posible. La decisión es atómica: si dos coordinadores deciden a la vez, uno recibe 409 `TRANSICION_INVALIDA`. |
+| POST /api/v1/ofertas/{id}/cerrar | Implementada | Solo rol empresa. Cierra una oferta propia en `pendiente_revision` o `publicada`; una oferta ajena responde 404 igual que una inexistente. Errores: 404 `NO_ENCONTRADO`, 409 `TRANSICION_INVALIDA`. |
+| POST /api/v1/coordinacion/ofertas/{id}/cerrar | Implementada | Solo coordinador. Retira una oferta `publicada` con `{ motivo }` obligatorio, que la empresa ve. Las ofertas nunca se borran: pasan a `cerrada` y conservan su historial. |
 | Resto de rutas de la tabla | Pendientes | |
 
 **Diferencias actuales con el contrato propuesto** (por alinear cuando se amplíe el módulo):

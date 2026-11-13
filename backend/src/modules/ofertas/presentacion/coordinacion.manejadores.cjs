@@ -1,7 +1,7 @@
 const { responderError } = require("./errores-http.cjs");
 
 // Manejadores puros (req, res): se pueden probar sin levantar Express.
-function crearManejadores({ listarPendientes, decidirEmpresa, decidirOferta }) {
+function crearManejadores({ listarPendientes, decidirEmpresa, decidirOferta, cerrarOferta }) {
   return {
     async pendientes(req, res) {
       try {
@@ -19,6 +19,14 @@ function crearManejadores({ listarPendientes, decidirEmpresa, decidirOferta }) {
         );
       } catch (error) {
         responderError(res, error, `${accion} empresa`);
+      }
+    },
+
+    async cerrar(req, res) {
+      try {
+        res.json(await cerrarOferta(req.usuario.id, req.params.id, req.body?.motivo));
+      } catch (error) {
+        responderError(res, error, "cerrar oferta");
       }
     },
 

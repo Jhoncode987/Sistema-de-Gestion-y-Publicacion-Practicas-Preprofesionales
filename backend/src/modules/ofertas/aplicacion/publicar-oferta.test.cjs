@@ -165,3 +165,49 @@ test("lista las ofertas de la propia empresa con su estado de validación", asyn
     AccesoDenegadoError
   );
 });
+
+const { crearCerrarMiOferta } = require("./publicar-oferta.cjs");
+const { NoEncontradoError, TransicionInvalidaError } = require("./errores.cjs");
+
+function entornoCierre({ cerrada = null, propia = null, perfil } = {}) {
+  const e = entorno({ perfil });
+  e.repo.cerrarOfertaDeEmpresa = async (d) => { e.repo.llamadas.ofertas.push(["cerrar", d]); return cerrada; };
+  e.repo.obtenerOfertaDeEmpresa = async () => propia;
+  return e;
+}
+
+test("la empresa cierra una oferta propia y la consulta lleva el id de SU empresa", async () => {
+  const { repo, obtenerPerfilUsuario } = entornoCierre({ cerrada: { id: "5", estado: "cerrada" } });
+  const r = await crearCerrarMiOferta({ ofertasRepository: repo, obtenerPerfilUsuario })("7", "5");
+
+  assert.equal(r.estado, "cerrada");
+  assert.deepEqual(repo.llamadas.ofertas[0], ["cerrar", { id: "5", empresaId: "10" }]);
+});
+
+test("cerrar una oferta ajena o inexistente responde igual (404), y una ya cerrada da 409", async () => {
+  const cerrar = (e) => crearCerrarMiOferta({ ofertasRepository: e.repo, obtenerPerfilUsuario: e.obtenerPerfilUsuario })("7", "5");
+
+  await assert.rejects(cerrar(entornoCierre()), NoEncontradoError);
+  await assert.rejects(
+    cerrar(entornoCierre({ propia: { id: "5", estado: "cerrada" } })),
+    (e) => e instanceof TransicionInvalidaError && e.codigo === "TRANSICION_INVALIDA"
+  );
+
+  const e = entornoCierre();
+  for (const id of ["abc", "1;DROP", "-3", ""]) {
+    await assert.rejects(
+      crearCerrarMiOferta({ ofertasRepository: e.repo, obtenerPerfilUsuario: e.obtenerPerfilUsuario })("7", id),
+      NoEncontradoError, id
+    );
+  }
+});
+
+test("solo una empresa puede cerrar con este caso de uso", async () => {
+  for (const perfil of [{ id: "1", rol: "estudiante" }, { id: "2", rol: "coordinador" }, null]) {
+    const e = entornoCierre({ perfil, cerrada: { id: "5" } });
+    await assert.rejects(
+      crearCerrarMiOferta({ ofertasRepository: e.repo, obtenerPerfilUsuario: e.obtenerPerfilUsuario })("1", "5"),
+      AccesoDenegadoError
+    );
+  }
+});

@@ -64,3 +64,13 @@ test("publicar usa el id del token (no del cuerpo) y responde 201", async () => 
   await m.mias({ usuario: { id: "7" } }, res);
   assert.equal(res.cuerpo.id, "7");
 });
+
+test("cerrar mi oferta usa el id del token y la oferta de la URL", async () => {
+  let recibido;
+  const m = crearManejadores({ cerrarMiOferta: async (...a) => { recibido = a; return { estado: "cerrada" }; } });
+  const res = respuestaFalsa();
+
+  await m.cerrar({ usuario: { id: "7" }, params: { id: "3" } }, res);
+  assert.deepEqual(recibido, ["7", "3"]);
+  assert.equal(res.estado, 200);
+});

@@ -161,7 +161,8 @@ function crearOfertasRepository(pool) {
 
     async listarPorEmpresa(empresaId) {
       const { rows } = await pool.query(
-        `SELECT ${COLUMNAS_OFERTA}, o.motivo_rechazo AS "motivoRechazo"
+        `SELECT ${COLUMNAS_OFERTA}, o.motivo_rechazo AS "motivoRechazo",
+                o.motivo_cierre AS "motivoCierre"
            FROM ofertas.ofertas AS o
            JOIN ofertas.empresas AS e ON e.id = o.empresa_id
           WHERE o.empresa_id = $1
@@ -260,6 +261,57 @@ function crearOfertasRepository(pool) {
            FROM actualizada AS o
            JOIN ofertas.empresas AS e ON e.id = o.empresa_id`,
         [id, estado, motivo, decididoPor]
+      );
+
+      return rows[0] ?? null;
+    },
+
+    // --- Cierre de ofertas (no se borran: se conserva el historial) ---
+
+    async obtenerOfertaDeEmpresa(id, empresaId) {
+      const { rows } = await pool.query(
+        `SELECT id, estado FROM ofertas.ofertas WHERE id = $1 AND empresa_id = $2`,
+        [id, empresaId]
+      );
+
+      return rows[0] ?? null;
+    },
+
+    // La empresa puede retirar una oferta propia en revisión o publicada.
+    async cerrarOfertaDeEmpresa({ id, empresaId }) {
+      const { rows } = await pool.query(
+        `WITH cerrada AS (
+           UPDATE ofertas.ofertas
+              SET estado = 'cerrada'
+            WHERE id = $1 AND empresa_id = $2
+              AND estado IN ('publicada', 'pendiente_revision')
+           RETURNING *
+         )
+         SELECT ${COLUMNAS_OFERTA}, o.motivo_rechazo AS "motivoRechazo",
+                o.motivo_cierre AS "motivoCierre"
+           FROM cerrada AS o
+           JOIN ofertas.empresas AS e ON e.id = o.empresa_id`,
+        [id, empresaId]
+      );
+
+      return rows[0] ?? null;
+    },
+
+    // La coordinación solo retira ofertas ya publicadas (las demás se rechazan).
+    async cerrarOfertaPorCoordinador({ id, motivo, decididoPor }) {
+      const { rows } = await pool.query(
+        `WITH cerrada AS (
+           UPDATE ofertas.ofertas
+              SET estado = 'cerrada', motivo_cierre = $2,
+                  decidido_por = $3, decidido_en = now()
+            WHERE id = $1 AND estado = 'publicada'
+           RETURNING *
+         )
+         SELECT ${COLUMNAS_OFERTA}, o.motivo_rechazo AS "motivoRechazo",
+                o.motivo_cierre AS "motivoCierre"
+           FROM cerrada AS o
+           JOIN ofertas.empresas AS e ON e.id = o.empresa_id`,
+        [id, motivo, decididoPor]
       );
 
       return rows[0] ?? null;

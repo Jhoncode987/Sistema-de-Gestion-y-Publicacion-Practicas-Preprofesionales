@@ -136,7 +136,35 @@ function crearDecidirOferta({ ofertasRepository, obtenerPerfilUsuario }) {
   };
 }
 
+function crearCerrarOferta({ ofertasRepository, obtenerPerfilUsuario }) {
+  return async function cerrarOferta(usuarioId, id, motivo) {
+    const motivoValido = validarDecision("rechazar", motivo);
+    const ofertaId = validarId(id);
+    const coordinador = await exigirCoordinador(obtenerPerfilUsuario, usuarioId);
+
+    const cerrada = await ofertasRepository.cerrarOfertaPorCoordinador({
+      id: ofertaId,
+      motivo: motivoValido,
+      decididoPor: coordinador.id
+    });
+
+    if (cerrada) {
+      return cerrada;
+    }
+
+    if (!(await ofertasRepository.obtenerOfertaParaRevision(ofertaId))) {
+      throw new NoEncontradoError("La oferta no existe");
+    }
+
+    throw new TransicionInvalidaError(
+      "TRANSICION_INVALIDA",
+      "Solo se pueden cerrar ofertas publicadas; las pendientes se rechazan"
+    );
+  };
+}
+
 module.exports = {
+  crearCerrarOferta,
   crearListarPendientes,
   crearDecidirEmpresa,
   crearDecidirOferta,
