@@ -4,6 +4,9 @@ import {
   PaginaRegistroEmpresa,
   PaginaRegistroInstitucional
 } from "./Acceso.jsx";
+import PanelCoordinador from "./PanelCoordinador.jsx";
+import PanelEmpresa from "./PanelEmpresa.jsx";
+import { CICLOS, MODALIDADES, formatearFecha } from "./formato.js";
 import { useSesion } from "./sesion.js";
 import "./App.css";
 
@@ -12,14 +15,6 @@ const SITIO_UNSCH = "https://enlinea.unsch.edu.pe/";
 // En desarrollo queda vacío y Vite redirige /api al backend.
 // En producción se define VITE_API_URL con la dirección del backend.
 const URL_API = import.meta.env.VITE_API_URL ?? "";
-
-const CICLOS = Array.from({ length: 10 }, (_, i) => i + 1);
-
-const MODALIDADES = [
-  { valor: "presencial", etiqueta: "Presencial" },
-  { valor: "remota", etiqueta: "Remota" },
-  { valor: "hibrida", etiqueta: "Híbrida" }
-];
 
 const FILTROS_VACIOS = { q: "", modalidad: "", carrera: "", ciclo: "" };
 const POR_DEFECTO = { items: [], total: 0, pageSize: 9 };
@@ -160,18 +155,6 @@ function Inicio({ token, alExpirar }) {
   const hayFiltros = Boolean(
     consulta.q || consulta.modalidad || consulta.carrera || consulta.ciclo
   );
-
-  // La fecha límite es un DATE de PostgreSQL: llega como medianoche UTC,
-  // por eso se formatea en UTC para no mostrar un día menos.
-  function formatearFecha(valor) {
-    const fecha = new Date(valor);
-
-    return Number.isNaN(fecha.getTime())
-      ? "Fecha no disponible"
-      : fecha.toLocaleDateString("es-PE", {
-          timeZone: "UTC"
-        });
-  }
 
   return (
     <>
@@ -408,6 +391,8 @@ function Portal({ sesion, hash }) {
   }, [hash]);
 
   const { usuario } = sesion;
+  const esEmpresa = usuario.rol === "empresa";
+  const esCoordinador = usuario.rol === "coordinador";
 
   return (
     <>
@@ -437,7 +422,19 @@ function Portal({ sesion, hash }) {
 
           <nav className="navegacion" aria-label="Principal">
             <a href="#/" aria-current="page">Inicio</a>
-            <a href="#ofertas">Ofertas</a>
+            {esEmpresa ? (
+              <>
+                <a href="#publicar">Publicar</a>
+                <a href="#mis-ofertas">Mis ofertas</a>
+              </>
+            ) : esCoordinador ? (
+              <>
+                <a href="#empresas">Empresas</a>
+                <a href="#ofertas-revision">Ofertas</a>
+              </>
+            ) : (
+              <a href="#ofertas">Ofertas</a>
+            )}
 
             <div className="usuario">
               <div className="usuario__datos">
@@ -459,7 +456,13 @@ function Portal({ sesion, hash }) {
         </div>
       </header>
 
-      <Inicio token={sesion.token} alExpirar={sesion.cerrarSesion} />
+      {esEmpresa ? (
+        <PanelEmpresa token={sesion.token} alExpirar={sesion.cerrarSesion} />
+      ) : esCoordinador ? (
+        <PanelCoordinador token={sesion.token} alExpirar={sesion.cerrarSesion} />
+      ) : (
+        <Inicio token={sesion.token} alExpirar={sesion.cerrarSesion} />
+      )}
 
       <footer className="pie">
         <div className="pie__interior">
