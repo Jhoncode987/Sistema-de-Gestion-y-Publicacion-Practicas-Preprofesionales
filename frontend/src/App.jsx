@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react";
-import Acceso from "./Acceso.jsx";
+import {
+  PaginaIngresar,
+  PaginaRegistroEmpresa,
+  PaginaRegistroInstitucional
+} from "./Acceso.jsx";
 import { useSesion } from "./sesion.js";
 import "./App.css";
 
@@ -26,9 +30,7 @@ const ETIQUETA_ROL = {
   coordinador: "Coordinador"
 };
 
-export default function App() {
-  const sesion = useSesion();
-  const [verAcceso, setVerAcceso] = useState(false);
+function Inicio() {
   const [carreras, setCarreras] = useState([]);
   const [borrador, setBorrador] = useState(FILTROS_VACIOS);
   const [consulta, setConsulta] = useState({ ...FILTROS_VACIOS, page: 1 });
@@ -159,64 +161,6 @@ export default function App() {
 
   return (
     <>
-      <div className="barra-superior">
-        <div className="barra-superior__interior">
-          <span>Universidad Nacional de San Cristóbal de Huamanga</span>
-          <a href={SITIO_UNSCH} target="_blank" rel="noopener noreferrer">
-            Sitio institucional
-          </a>
-        </div>
-      </div>
-
-      <header className="cabecera">
-        <div className="cabecera__interior">
-          <a
-            className="enlace-logo"
-            href={SITIO_UNSCH}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <img
-              className="logo-unsch"
-              src="/logo-unsch.png"
-              alt="Universidad Nacional de San Cristóbal de Huamanga"
-            />
-          </a>
-
-          <nav className="navegacion" aria-label="Principal">
-            <a href="#inicio" aria-current="page">Inicio</a>
-            <a href="#ofertas">Ofertas</a>
-
-            {sesion.usuario ? (
-              <span className="sesion">
-                <span className="sesion__usuario">
-                  {sesion.usuario.nombre}
-                  <small>{ETIQUETA_ROL[sesion.usuario.rol]}</small>
-                </span>
-                <button
-                  type="button"
-                  className="boton-secundario"
-                  onClick={sesion.cerrarSesion}
-                >
-                  Salir
-                </button>
-              </span>
-            ) : (
-              !sesion.restaurando && (
-                <button
-                  type="button"
-                  className="boton-dorado boton-dorado--compacto"
-                  onClick={() => setVerAcceso((abierto) => !abierto)}
-                  aria-expanded={verAcceso}
-                >
-                  Ingresar
-                </button>
-              )
-            )}
-          </nav>
-        </div>
-      </header>
-
       <section className="hero" id="inicio">
         <div className="hero__interior">
           <p className="hero__etiqueta">Portal de oportunidades</p>
@@ -229,10 +173,6 @@ export default function App() {
           </a>
         </div>
       </section>
-
-      {verAcceso && !sesion.usuario && (
-        <Acceso sesion={sesion} alTerminar={() => setVerAcceso(false)} />
-      )}
 
       <main className="contenedor" id="ofertas">
         <section aria-labelledby="titulo-ofertas">
@@ -411,6 +351,114 @@ export default function App() {
         </section>
       </main>
 
+    </>
+  );
+}
+
+// Rutas con el hash de la URL (#/ingresar, #/registro/...). Cualquier otro
+// valor muestra el inicio, así que #ofertas sigue llevando a la lista.
+const RUTAS_ACCESO = {
+  "#/ingresar": PaginaIngresar,
+  "#/registro/institucional": PaginaRegistroInstitucional,
+  "#/registro/empresa": PaginaRegistroEmpresa
+};
+
+function useHash() {
+  const [hash, setHash] = useState(window.location.hash);
+
+  useEffect(() => {
+    const alCambiar = () => setHash(window.location.hash);
+
+    window.addEventListener("hashchange", alCambiar);
+
+    return () => window.removeEventListener("hashchange", alCambiar);
+  }, []);
+
+  return hash;
+}
+
+export default function App() {
+  const sesion = useSesion();
+  const hash = useHash();
+  const Pagina = RUTAS_ACCESO[hash];
+  const enInicio = !Pagina;
+
+  // Con la sesión iniciada no tiene sentido ver las páginas de acceso.
+  useEffect(() => {
+    if (sesion.usuario && Pagina) {
+      window.location.hash = "#/";
+    }
+  }, [sesion.usuario, Pagina]);
+
+  // Al volver al inicio desde otra página, baja a la sección pedida (#ofertas).
+  useEffect(() => {
+    if (enInicio) {
+      const id = hash.replace(/^#\/?/, "");
+      document.getElementById(id)?.scrollIntoView();
+    }
+  }, [enInicio, hash]);
+
+  return (
+    <>
+      <div className="barra-superior">
+        <div className="barra-superior__interior">
+          <span>Universidad Nacional de San Cristóbal de Huamanga</span>
+          <a href={SITIO_UNSCH} target="_blank" rel="noopener noreferrer">
+            Sitio institucional
+          </a>
+        </div>
+      </div>
+
+      <header className="cabecera">
+        <div className="cabecera__interior">
+          <a
+            className="enlace-logo"
+            href={SITIO_UNSCH}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <img
+              className="logo-unsch"
+              src="/logo-unsch.png"
+              alt="Universidad Nacional de San Cristóbal de Huamanga"
+            />
+          </a>
+
+          <nav className="navegacion" aria-label="Principal">
+            <a href="#/" aria-current={enInicio ? "page" : undefined}>Inicio</a>
+            <a href="#ofertas">Ofertas</a>
+
+            {sesion.usuario ? (
+              <span className="sesion">
+                <span className="sesion__usuario">
+                  {sesion.usuario.nombre}
+                  <small>{ETIQUETA_ROL[sesion.usuario.rol]}</small>
+                </span>
+                <button
+                  type="button"
+                  className="boton-secundario"
+                  onClick={sesion.cerrarSesion}
+                >
+                  Salir
+                </button>
+              </span>
+            ) : (
+              !sesion.restaurando && (
+                <a
+                  className="boton-dorado boton-dorado--compacto"
+                  href="#/ingresar"
+                >
+                  Ingresar
+                </a>
+              )
+            )}
+          </nav>
+        </div>
+      </header>
+
+
+      {Pagina ? <Pagina sesion={sesion} /> : <Inicio />}
+
       <footer className="pie">
         <div className="pie__interior">
           <img
@@ -426,6 +474,7 @@ export default function App() {
           </p>
         </div>
       </footer>
+
     </>
   );
 }

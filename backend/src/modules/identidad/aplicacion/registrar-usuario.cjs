@@ -3,6 +3,8 @@ const { hashearClave } = require("./claves.cjs");
 
 const ROLES_PUBLICOS = ["estudiante", "empresa"];
 const CORREO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// Cuenta institucional: correos @unsch.edu.pe (o de un subdominio de unsch.edu.pe).
+const CORREO_INSTITUCIONAL = /@([a-z0-9-]+\.)*unsch\.edu\.pe$/;
 
 function texto(valor, campo, { min = 1, max }) {
   if (typeof valor !== "string") {
@@ -51,6 +53,12 @@ function validarRegistro(entrada) {
   const base = validarBase(entrada);
 
   if (entrada.rol === "estudiante") {
+    if (!CORREO_INSTITUCIONAL.test(base.correo)) {
+      throw new DatosInvalidosError(
+        "Los estudiantes deben usar su correo institucional (@unsch.edu.pe)"
+      );
+    }
+
     const codigo = texto(entrada.codigoEstudiante, "El código de estudiante", { max: 10 });
 
     if (!/^\d{6,10}$/.test(codigo)) {

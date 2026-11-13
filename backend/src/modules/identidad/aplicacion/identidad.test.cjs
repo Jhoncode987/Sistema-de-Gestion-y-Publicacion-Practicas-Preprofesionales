@@ -141,7 +141,7 @@ test("registra empresa con RUC y razón social", () => {
 });
 
 test("no permite registrarse como coordinador ni datos inválidos", () => {
-  const base = { ...estudiante, correo: "a@b.pe" };
+  const base = { ...estudiante, correo: "a@unsch.edu.pe" };
   const malos = [
     null,
     { ...base, rol: "coordinador" },
@@ -159,6 +159,28 @@ test("no permite registrarse como coordinador ni datos inválidos", () => {
   for (const entrada of malos) {
     assert.throws(() => validarRegistro(entrada), DatosInvalidosError, JSON.stringify(entrada));
   }
+});
+
+test("el estudiante exige correo institucional; la empresa puede usar cualquiera", () => {
+  for (const correo of ["ana@gmail.com", "ana@unsch.edu.pe.falso.com", "ana@xunsch.edu.pe", "ana@unsch.edu.com"]) {
+    assert.throws(
+      () => validarRegistro({ ...estudiante, correo }),
+      /correo institucional/,
+      correo
+    );
+  }
+
+  for (const correo of ["ana@unsch.edu.pe", "ANA@UNSCH.EDU.PE", "ana@est.unsch.edu.pe"]) {
+    assert.equal(validarRegistro({ ...estudiante, correo }).rol, "estudiante", correo);
+  }
+
+  assert.equal(
+    validarRegistro({
+      rol: "empresa", correo: "rrhh@gmail.com", clave: "clave-segura-1",
+      nombre: "María Rojas", ruc: "20123456789", razonSocial: "Empresa Real S.A.C."
+    }).rol,
+    "empresa"
+  );
 });
 
 test("un correo repetido es rechazado", async () => {
