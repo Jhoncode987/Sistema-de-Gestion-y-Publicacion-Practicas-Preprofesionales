@@ -70,7 +70,10 @@ if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 
+// En la nube (Neon) llega una sola cadena en DATABASE_URL; en local se usan
+// las variables PGHOST, PGUSER, etc. que lee el cliente pg.
 const pool = new Pool({
+  connectionString: process.env.DATABASE_URL || undefined,
   connectionTimeoutMillis: 5000
 });
 
