@@ -22,6 +22,29 @@ function texto(valor, campo, { min = 1, max }) {
   return limpio;
 }
 
+function entero(valor, campo, min, max) {
+  const numero = typeof valor === "string" && valor.trim() !== "" ? Number(valor) : valor;
+
+  if (!Number.isInteger(numero) || numero < min || numero > max) {
+    throw new DatosInvalidosError(`${campo} debe ser un número entre ${min} y ${max}`);
+  }
+
+  return numero;
+}
+
+// Perfil académico declarado por el estudiante (carrera, ciclo y créditos aprobados).
+function validarPerfilAcademico(datos) {
+  if (datos === null || typeof datos !== "object") {
+    throw new DatosInvalidosError("Solicitud inválida");
+  }
+
+  return {
+    carrera: texto(datos.carrera, "La carrera", { min: 3, max: 150 }),
+    ciclo: entero(datos.ciclo, "El ciclo", 1, 10),
+    creditosAprobados: entero(datos.creditosAprobados, "Los créditos aprobados", 0, 250)
+  };
+}
+
 function validarBase(datos) {
   const correo = texto(datos.correo, "El correo", { max: 254 }).toLowerCase();
 
@@ -67,7 +90,12 @@ function validarRegistro(entrada) {
       );
     }
 
-    return { ...base, rol: "estudiante", codigoEstudiante: codigo };
+    return {
+      ...base,
+      rol: "estudiante",
+      codigoEstudiante: codigo,
+      ...validarPerfilAcademico(entrada)
+    };
   }
 
   const ruc = texto(entrada.ruc, "El RUC", { max: 11 });
@@ -109,4 +137,9 @@ function crearCrearCoordinador({ usuariosRepository }) {
   };
 }
 
-module.exports = { crearRegistrarUsuario, crearCrearCoordinador, validarRegistro };
+module.exports = {
+  crearRegistrarUsuario,
+  crearCrearCoordinador,
+  validarRegistro,
+  validarPerfilAcademico
+};

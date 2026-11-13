@@ -6,7 +6,7 @@ import {
 } from "./Acceso.jsx";
 import PanelCoordinador from "./PanelCoordinador.jsx";
 import PanelEmpresa from "./PanelEmpresa.jsx";
-import ListadoOfertas from "./ListadoOfertas.jsx";
+import PanelEstudiante from "./PanelEstudiante.jsx";
 import { useSesion } from "./sesion.js";
 import "./App.css";
 
@@ -100,7 +100,10 @@ function Portal({ sesion, hash }) {
                 <a href="#publicadas">Publicadas</a>
               </>
             ) : (
-              <a href="#ofertas">Ofertas</a>
+              <>
+                <a href="#ofertas">Ofertas</a>
+                <a href="#mis-postulaciones">Mis postulaciones</a>
+              </>
             )}
 
             <div className="usuario">
@@ -128,11 +131,7 @@ function Portal({ sesion, hash }) {
       ) : esCoordinador ? (
         <PanelCoordinador token={sesion.token} alExpirar={sesion.cerrarSesion} />
       ) : (
-        <ListadoOfertas
-          token={sesion.token}
-          alExpirar={sesion.cerrarSesion}
-          conPortada
-        />
+        <PanelEstudiante sesion={sesion} />
       )}
 
       <footer className="pie">

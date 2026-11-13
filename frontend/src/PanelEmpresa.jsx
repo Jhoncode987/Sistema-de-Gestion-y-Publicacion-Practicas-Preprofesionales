@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { CICLOS, MODALIDADES, formatearFecha } from "./formato.js";
+import { pedirApi } from "./api.js";
+import { CICLOS, MODALIDADES, formatearFecha, formatearFechaHora } from "./formato.js";
 
 const URL_API = import.meta.env.VITE_API_URL ?? "";
 
@@ -58,6 +59,116 @@ async function pedir(ruta, token, opciones = {}) {
   }
 
   return datos;
+}
+
+const ESTADOS_POSTULACION = {
+  pendiente: { texto: "Pendiente", clase: "estado--revision" },
+  aceptada: { texto: "Aceptada", clase: "estado--publicada" },
+  rechazada: { texto: "Rechazada", clase: "estado--rechazada" },
+  retirada: { texto: "Retirada", clase: "estado--cerrada" }
+};
+
+// Postulantes de una oferta: la empresa acepta o rechaza. Al aceptar al último
+// de las vacantes la oferta se cierra sola y se avisa aquí.
+function Postulantes({ oferta, token, alCambiarOferta }) {
+  const [abierto, setAbierto] = useState(false);
+  const [datos, setDatos] = useState(null);
+  const [error, setError] = useState("");
+  const [aviso, setAviso] = useState("");
+  const [rechazando, setRechazando] = useState(null);
+  const [motivo, setMotivo] = useState("");
+
+  const cargar = useCallback(async () => {
+    try {
+      setDatos(await pedirApi(`/postulaciones/oferta/${oferta.id}`, token));
+      setError("");
+    } catch (err) {
+      setError(err.message);
+    }
+  }, [oferta.id, token]);
+
+  useEffect(() => {
+    if (abierto) cargar();
+  }, [abierto, cargar]);
+
+  async function decidir(id, accion, cuerpo) {
+    setError("");
+    setAviso("");
+
+    try {
+      const r = await pedirApi(`/postulaciones/${id}/${accion}`, token, { metodo: "POST", cuerpo });
+      if (r.ofertaCerrada) {
+        setAviso("Se cubrieron todas las vacantes: la oferta se cerró y las demás postulaciones pendientes se rechazaron.");
+        await alCambiarOferta();
+      }
+      setRechazando(null);
+      setMotivo("");
+    } catch (err) {
+      setError(err.message);
+    }
+    await cargar();
+  }
+
+  return (
+    <div className="postulantes">
+      <button type="button" className="boton-secundario" onClick={() => setAbierto(!abierto)} aria-expanded={abierto}>
+        {abierto ? "Ocultar postulantes" : "Ver postulantes"}
+      </button>
+
+      {abierto && (
+        <div className="postulantes__lista">
+          {error && <p className="aviso error" role="alert">{error}</p>}
+          {aviso && <p className="aviso aviso--info" role="status">{aviso}</p>}
+          {!datos && !error && <p role="status">Cargando…</p>}
+          {datos && (
+            <>
+              <p className="resultado">
+                {datos.aceptadas} de {datos.oferta.vacantes} vacantes cubiertas · {datos.items.length}{" "}
+                {datos.items.length === 1 ? "postulación" : "postulaciones"}
+              </p>
+              {datos.items.length === 0 && <p className="aviso">Aún no hay postulaciones.</p>}
+              {datos.items.map((p) => {
+                const estado = ESTADOS_POSTULACION[p.estado] ?? { texto: p.estado, clase: "" };
+
+                return (
+                  <div className="postulante" key={p.id}>
+                    <div>
+                      <strong>{p.estudiante?.nombre ?? "Estudiante"}</strong>{" "}
+                      <span className={`etiqueta ${estado.clase}`}>{estado.texto}</span>
+                      {p.estudiante && (
+                        <p className="postulante__datos">
+                          {p.estudiante.carrera} · ciclo {p.estudiante.ciclo} · {p.estudiante.creditosAprobados} créditos
+                          <br />
+                          Código {p.estudiante.codigoEstudiante} · {p.estudiante.correo}
+                        </p>
+                      )}
+                      <p className="postulante__datos">Postuló el {formatearFechaHora(p.creadaEn)}</p>
+                      {p.estado === "rechazada" && p.motivo && <p className="postulante__datos">Motivo: {p.motivo}</p>}
+                    </div>
+
+                    {p.estado === "pendiente" && rechazando !== p.id && (
+                      <div className="postulante__acciones">
+                        <button type="button" onClick={() => decidir(p.id, "aceptar")}>Aceptar</button>
+                        <button type="button" className="boton-secundario" onClick={() => setRechazando(p.id)}>Rechazar</button>
+                      </div>
+                    )}
+
+                    {p.estado === "pendiente" && rechazando === p.id && (
+                      <div className="postulante__acciones">
+                        <input value={motivo} onChange={(e) => setMotivo(e.target.value)} maxLength={500} placeholder="Motivo (opcional)" aria-label="Motivo del rechazo" />
+                        <button type="button" onClick={() => decidir(p.id, "rechazar", { motivo })}>Confirmar rechazo</button>
+                        <button type="button" className="boton-secundario" onClick={() => setRechazando(null)}>Cancelar</button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 // Cierre en dos pasos: evita cerrar una oferta por un clic accidental.
@@ -464,6 +575,10 @@ export default function PanelEmpresa({ token, alExpirar }) {
                         <dd>{formatearFecha(oferta.fecha_limite)}</dd>
                       </div>
                     </dl>
+
+                    {["publicada", "cerrada"].includes(oferta.estado) && (
+                      <Postulantes oferta={oferta} token={token} alCambiarOferta={cargar} />
+                    )}
 
                     {["publicada", "pendiente_revision"].includes(oferta.estado) && (
                       <CerrarOferta alCerrar={cerrar(oferta.id)} />

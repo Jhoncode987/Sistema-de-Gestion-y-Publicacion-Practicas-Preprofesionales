@@ -317,6 +317,68 @@ function crearOfertasRepository(pool) {
       return rows[0] ?? null;
     },
 
+    // --- Contratos para el módulo Postulaciones ---
+
+    // "vigente" resume las reglas de visibilidad: publicada, empresa aprobada y sin vencer.
+    async obtenerOfertaParaPostular(id) {
+      const { rows } = await pool.query(
+        `SELECT o.id::text AS id, o.titulo, e.razon_social AS empresa, o.carrera,
+                o.ciclo_minimo, o.creditos_minimos, o.vacantes, o.fecha_limite, o.estado,
+                (o.estado = 'publicada' AND e.estado = 'aprobada'
+                 AND o.fecha_limite >= CURRENT_DATE) AS vigente
+           FROM ofertas.ofertas AS o
+           JOIN ofertas.empresas AS e ON e.id = o.empresa_id
+          WHERE o.id = $1`,
+        [id]
+      );
+
+      return rows[0] ?? null;
+    },
+
+    async obtenerOfertasPorIds(ids) {
+      const validos = ids.filter((id) => /^\d{1,18}$/.test(String(id)));
+
+      if (validos.length === 0) {
+        return [];
+      }
+
+      const { rows } = await pool.query(
+        `SELECT o.id::text AS id, o.titulo, e.razon_social AS empresa, o.modalidad,
+                o.fecha_limite, o.estado, o.motivo_cierre AS "motivoCierre"
+           FROM ofertas.ofertas AS o
+           JOIN ofertas.empresas AS e ON e.id = o.empresa_id
+          WHERE o.id = ANY($1::bigint[])`,
+        [`{${validos.join(",")}}`]
+      );
+
+      return rows;
+    },
+
+    // Oferta de la empresa cuyo propietario es ese usuario (null si es ajena o no existe).
+    async obtenerOfertaDePropietario(usuarioId, ofertaId) {
+      const { rows } = await pool.query(
+        `SELECT o.id::text AS id, o.titulo, o.vacantes, o.estado
+           FROM ofertas.ofertas AS o
+           JOIN ofertas.empresas AS e ON e.id = o.empresa_id
+          WHERE o.id = $1 AND e.propietario_usuario_id = $2`,
+        [ofertaId, usuarioId]
+      );
+
+      return rows[0] ?? null;
+    },
+
+    // Cierre automático al cubrirse las vacantes (solo desde "publicada").
+    async cerrarOfertaPorCupoLleno(id, motivo) {
+      const { rowCount } = await pool.query(
+        `UPDATE ofertas.ofertas
+            SET estado = 'cerrada', motivo_cierre = $2
+          WHERE id = $1 AND estado = 'publicada'`,
+        [id, motivo]
+      );
+
+      return rowCount > 0;
+    },
+
     async listarCarreras() {
       const resultado = await pool.query(`
         SELECT DISTINCT o.carrera

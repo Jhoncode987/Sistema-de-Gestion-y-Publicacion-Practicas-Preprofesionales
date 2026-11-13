@@ -12,4 +12,11 @@ function crearObtenerPerfil({ usuariosRepository }) {
   };
 }
 
-module.exports = { crearObtenerPerfil };
+// Perfiles públicos de varias cuentas a la vez (sin clave), para otros módulos.
+function crearObtenerPerfiles({ usuariosRepository }) {
+  return async function obtenerPerfiles(ids) {
+    return usuariosRepository.buscarPorIds(ids);
+  };
+}
+
+module.exports = { crearObtenerPerfil, crearObtenerPerfiles };

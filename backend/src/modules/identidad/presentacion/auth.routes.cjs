@@ -4,7 +4,8 @@ const {
   DatosInvalidosError,
   CuentaDuplicadaError,
   CredencialesInvalidasError,
-  DemasiadosIntentosError
+  DemasiadosIntentosError,
+  AccesoDenegadoError
 } = require("../aplicacion/errores.cjs");
 
 function responderError(res, error, contexto) {
@@ -12,7 +13,8 @@ function responderError(res, error, contexto) {
     [DatosInvalidosError, 400, "DATOS_INVALIDOS"],
     [CuentaDuplicadaError, 409, "CUENTA_DUPLICADA"],
     [CredencialesInvalidasError, 401, "CREDENCIALES_INVALIDAS"],
-    [DemasiadosIntentosError, 429, "DEMASIADOS_INTENTOS"]
+    [DemasiadosIntentosError, 429, "DEMASIADOS_INTENTOS"],
+    [AccesoDenegadoError, 403, "ACCESO_DENEGADO"]
   ];
 
   for (const [Clase, estado, codigo] of conocidos) {
@@ -30,7 +32,12 @@ function responderError(res, error, contexto) {
 }
 
 // Manejadores puros (req, res): se pueden probar sin levantar Express.
-function crearManejadores({ registrarUsuario, iniciarSesion, obtenerPerfil }) {
+function crearManejadores({
+  registrarUsuario,
+  iniciarSesion,
+  obtenerPerfil,
+  actualizarPerfilAcademico
+}) {
   return {
     async registro(req, res) {
       try {
@@ -45,6 +52,16 @@ function crearManejadores({ registrarUsuario, iniciarSesion, obtenerPerfil }) {
         res.json(await iniciarSesion(req.body));
       } catch (error) {
         responderError(res, error, "iniciar sesión");
+      }
+    },
+
+    async perfilAcademico(req, res) {
+      try {
+        res.json({
+          usuario: await actualizarPerfilAcademico(req.usuario.id, req.body)
+        });
+      } catch (error) {
+        responderError(res, error, "actualizar perfil académico");
       }
     },
 
@@ -74,6 +91,7 @@ function crearAuthRouter({ autenticar, ...casosDeUso }) {
   router.post("/registro", manejadores.registro);
   router.post("/login", manejadores.login);
   router.get("/yo", autenticar, manejadores.yo);
+  router.put("/perfil-academico", autenticar, manejadores.perfilAcademico);
 
   return router;
 }
