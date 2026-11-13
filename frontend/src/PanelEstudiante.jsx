@@ -7,7 +7,8 @@ const ESTADOS = {
   pendiente: { texto: "Pendiente", clase: "estado--revision" },
   aceptada: { texto: "Aceptada", clase: "estado--publicada" },
   rechazada: { texto: "Rechazada", clase: "estado--rechazada" },
-  retirada: { texto: "Retirada", clase: "estado--cerrada" }
+  retirada: { texto: "Retirada", clase: "estado--cerrada" },
+  finalizada: { texto: "Finalizada", clase: "estado--cerrada" }
 };
 
 const perfilCompleto = (u) => u.carrera != null && u.ciclo != null && u.creditosAprobados != null;
@@ -89,7 +90,7 @@ function PerfilAcademico({ usuario, sesion }) {
   );
 }
 
-function BotonPostular({ oferta, postulacion, puedePostular, token, alCambiar }) {
+function BotonPostular({ oferta, postulacion, puedePostular, enPractica, token, alCambiar }) {
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState(null);
 
@@ -121,9 +122,9 @@ function BotonPostular({ oferta, postulacion, puedePostular, token, alCambiar })
 
   return (
     <div className="acciones-postulacion">
-      <button type="button" onClick={postular} disabled={enviando || !puedePostular}
+      <button type="button" onClick={postular} disabled={enviando || !puedePostular || enPractica}
         title={puedePostular ? undefined : "Completa tu perfil académico para postular"}>
-        {enviando ? "Postulando…" : "Postular"}
+        {enviando ? "Postulando…" : enPractica ? "Ya estás en una práctica" : "Postular"}
       </button>
       {error && (
         <div className="aviso error" role="alert">
@@ -180,6 +181,9 @@ function MisPostulaciones({ token, items, error, alCambiar }) {
                 {p.estado === "aceptada" && (
                   <p className="aviso aviso--exito">¡Fuiste aceptado! La empresa se comunicará contigo.</p>
                 )}
+                {p.estado === "finalizada" && (
+                  <p className="aviso aviso--info">Práctica finalizada. Ya puedes postular a nuevas ofertas.</p>
+                )}
                 {p.estado === "pendiente" && (
                   <button type="button" className="boton-secundario" onClick={() => retirar(p.id)}>
                     Retirar postulación
@@ -219,6 +223,7 @@ export default function PanelEstudiante({ sesion }) {
 
   const porOferta = new Map(postulaciones.map((p) => [String(p.ofertaId), p]));
   const completo = perfilCompleto(usuario);
+  const enPractica = postulaciones.some((p) => p.estado === "aceptada");
 
   return (
     <>
@@ -235,6 +240,7 @@ export default function PanelEstudiante({ sesion }) {
             oferta={oferta}
             postulacion={porOferta.get(String(oferta.id))}
             puedePostular={completo}
+            enPractica={enPractica}
             token={token}
             alCambiar={cargar}
           />

@@ -6,7 +6,8 @@ function crearManejadores({
   listarMisPostulaciones,
   retirarPostulacion,
   listarPostulantes,
-  decidirPostulacion
+  decidirPostulacion,
+  finalizarPractica
 }) {
   const envolver = (contexto, estado, fn) => async (req, res) => {
     try {
@@ -27,6 +28,9 @@ function crearManejadores({
     ),
     aceptar: envolver("aceptar postulación", 200, (req) =>
       decidirPostulacion.aceptar(req.usuario.id, req.params.id)
+    ),
+    finalizar: envolver("finalizar práctica", 200, (req) =>
+      finalizarPractica(req.usuario.id, req.params.id)
     ),
     rechazar: envolver("rechazar postulación", 200, (req) =>
       decidirPostulacion.rechazar(req.usuario.id, req.params.id, req.body)

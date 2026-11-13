@@ -37,7 +37,8 @@ const {
   crearListarMisPostulaciones,
   crearRetirarPostulacion,
   crearListarPostulantes,
-  crearDecidirPostulacion
+  crearDecidirPostulacion,
+  crearFinalizarPractica
 } = require("./src/modules/postulaciones/aplicacion/postulaciones.cjs");
 const { crearPostulacionesRouter } = require("./src/modules/postulaciones/presentacion/postulaciones.routes.cjs");
 
@@ -198,11 +199,13 @@ app.use(
   crearPostulacionesRouter({
     soloEstudiante: requerirRol("estudiante"),
     soloEmpresa: requerirRol("empresa"),
+    empresaOCoordinador: requerirRol("empresa", "coordinador"),
     postular: crearPostular(dependenciasPostulaciones),
     listarMisPostulaciones: crearListarMisPostulaciones(dependenciasPostulaciones),
     retirarPostulacion: crearRetirarPostulacion(dependenciasPostulaciones),
     listarPostulantes: crearListarPostulantes(dependenciasPostulaciones),
-    decidirPostulacion: crearDecidirPostulacion(dependenciasPostulaciones)
+    decidirPostulacion: crearDecidirPostulacion(dependenciasPostulaciones),
+    finalizarPractica: crearFinalizarPractica(dependenciasPostulaciones)
   })
 );
 

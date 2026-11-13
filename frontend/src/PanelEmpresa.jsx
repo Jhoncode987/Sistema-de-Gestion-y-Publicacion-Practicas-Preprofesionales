@@ -65,7 +65,8 @@ const ESTADOS_POSTULACION = {
   pendiente: { texto: "Pendiente", clase: "estado--revision" },
   aceptada: { texto: "Aceptada", clase: "estado--publicada" },
   rechazada: { texto: "Rechazada", clase: "estado--rechazada" },
-  retirada: { texto: "Retirada", clase: "estado--cerrada" }
+  retirada: { texto: "Retirada", clase: "estado--cerrada" },
+  finalizada: { texto: "Finalizada", clase: "estado--cerrada" }
 };
 
 // Postulantes de una oferta: la empresa acepta o rechaza. Al aceptar al último
@@ -76,6 +77,7 @@ function Postulantes({ oferta, token, alCambiarOferta }) {
   const [error, setError] = useState("");
   const [aviso, setAviso] = useState("");
   const [rechazando, setRechazando] = useState(null);
+  const [finalizando, setFinalizando] = useState(null);
   const [motivo, setMotivo] = useState("");
 
   const cargar = useCallback(async () => {
@@ -102,6 +104,7 @@ function Postulantes({ oferta, token, alCambiarOferta }) {
         await alCambiarOferta();
       }
       setRechazando(null);
+      setFinalizando(null);
       setMotivo("");
     } catch (err) {
       setError(err.message);
@@ -150,6 +153,22 @@ function Postulantes({ oferta, token, alCambiarOferta }) {
                       <div className="postulante__acciones">
                         <button type="button" onClick={() => decidir(p.id, "aceptar")}>Aceptar</button>
                         <button type="button" className="boton-secundario" onClick={() => setRechazando(p.id)}>Rechazar</button>
+                      </div>
+                    )}
+
+                    {p.estado === "aceptada" && finalizando !== p.id && (
+                      <div className="postulante__acciones">
+                        <button type="button" className="boton-secundario" onClick={() => setFinalizando(p.id)}>
+                          Finalizar práctica
+                        </button>
+                      </div>
+                    )}
+
+                    {p.estado === "aceptada" && finalizando === p.id && (
+                      <div className="postulante__acciones">
+                        <span>¿La práctica ya terminó?</span>
+                        <button type="button" onClick={() => decidir(p.id, "finalizar")}>Sí, finalizar</button>
+                        <button type="button" className="boton-secundario" onClick={() => setFinalizando(null)}>Cancelar</button>
                       </div>
                     )}
 

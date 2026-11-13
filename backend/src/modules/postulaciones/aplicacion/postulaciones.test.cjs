@@ -6,7 +6,8 @@ const {
   crearListarMisPostulaciones,
   crearRetirarPostulacion,
   crearListarPostulantes,
-  crearDecidirPostulacion
+  crearDecidirPostulacion,
+  crearFinalizarPractica
 } = require("./postulaciones.cjs");
 const { evaluarElegibilidad, normalizar } = require("./elegibilidad.cjs");
 const { AccesoDenegadoError, NoEncontradoError, ReglaDeNegocioError } = require("./errores.cjs");
@@ -49,6 +50,11 @@ function montar({ perfiles = {}, oferta = OFERTA } = {}) {
       if (f) f.estado = "retirada";
       return f ? { ...f } : null;
     },
+    async finalizar(id) {
+      const f = filas.find((x) => x.id === id && x.estado === "aceptada");
+      if (f) f.estado = "finalizada";
+      return f ? { ...f } : null;
+    },
     async rechazar({ id, motivo }) {
       const f = filas.find((x) => x.id === id && x.estado === "pendiente");
       if (f) { f.estado = "rechazada"; f.motivo = motivo; }
@@ -57,7 +63,7 @@ function montar({ perfiles = {}, oferta = OFERTA } = {}) {
     async tieneAceptada(estudianteId) { return filas.some((f) => f.estudianteId === estudianteId && f.estado === "aceptada"); },
     async aceptar({ id, ofertaId, estudianteId, vacantes }) {
       if (filas.some((f) => f.estudianteId === estudianteId && f.estado === "aceptada")) return { resultado: "YA_ACEPTADO" };
-      const n = filas.filter((f) => f.ofertaId === ofertaId && f.estado === "aceptada").length;
+      const n = filas.filter((f) => f.ofertaId === ofertaId && ["aceptada", "finalizada"].includes(f.estado)).length;
       if (n >= vacantes) return { resultado: "SIN_CUPO" };
       const f = filas.find((x) => x.id === id && x.estado === "pendiente");
       if (!f) return { resultado: "TRANSICION" };
@@ -238,4 +244,37 @@ test("un estudiante aceptado ya no puede postular ni ser aceptado en otra oferta
   montado.filas.push({ id: "100", ofertaId: "10", estudianteId: "1", estado: "pendiente", motivo: null });
   await falla(montado.decidir.aceptar("9", "100"), ReglaDeNegocioError, "ESTUDIANTE_YA_ACEPTADO");
   assert.ok(filas);
+});
+
+test("finalizar: la empresa dueña o el coordinador; libera al estudiante para postular de nuevo", async () => {
+  const m = montar({ perfiles: { 5: { id: "5", rol: "coordinador", nombre: "Coord" } } });
+  const finalizar = crearFinalizarPractica(m.dep);
+  const a = await m.postular("1", { ofertaId: "10" });
+  await falla(finalizar("9", a.id), ReglaDeNegocioError, "TRANSICION_INVALIDA"); // aún pendiente
+  await m.decidir.aceptar("9", a.id);
+  await falla(finalizar("8", a.id), NoEncontradoError);   // empresa ajena
+  await falla(finalizar("1", a.id), AccesoDenegadoError); // estudiante
+  await falla(finalizar("9", "xyz"), NoEncontradoError);
+  assert.equal((await finalizar("9", a.id)).postulacion.estado, "finalizada");
+  await falla(finalizar("9", a.id), ReglaDeNegocioError, "TRANSICION_INVALIDA");
+
+  // Ya no está "en práctica": puede postular de nuevo (a otra oferta; aquí la misma da duplicada).
+  await falla(m.postular("1", { ofertaId: "10" }), ReglaDeNegocioError, "POSTULACION_DUPLICADA");
+
+  // El coordinador también puede finalizar.
+  const b = await m.postular("2", { ofertaId: "10" });
+  await m.decidir.aceptar("9", b.id);
+  assert.equal((await finalizar("5", b.id)).postulacion.estado, "finalizada");
+});
+
+test("una práctica finalizada sigue contando como vacante ocupada", async () => {
+  const m = montar({ oferta: { ...OFERTA, vacantes: 1 } });
+  const finalizar = crearFinalizarPractica(m.dep);
+  const a = await m.postular("1", { ofertaId: "10" });
+  const b = await m.postular("2", { ofertaId: "10" });
+  await m.decidir.aceptar("9", a.id);
+  await finalizar("9", a.id);
+  const r = await crearListarPostulantes(m.dep)("9", "10");
+  assert.equal(r.aceptadas, 1);
+  assert.ok(b);
 });
