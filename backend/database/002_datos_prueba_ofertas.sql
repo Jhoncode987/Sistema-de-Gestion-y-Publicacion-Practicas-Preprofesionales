@@ -1,9 +1,23 @@
 -- Datos de prueba para ver los filtros y la paginación del portal.
 -- Todas las empresas son ficticias y llevan el prefijo "Demo".
--- Se puede ejecutar varias veces: no duplica registros.
+-- Se puede ejecutar varias veces: reemplaza solo las empresas demo
+-- (RUC 00000000002 a 00000000009) y sus ofertas, sin duplicar registros.
 -- Requiere haber ejecutado antes 001_crear_empresas_y_ofertas.sql.
 
+-- El archivo está en UTF-8: se fuerza la codificación para que las tildes
+-- no se dañen cuando psql corre en Windows (por defecto usa WIN1252).
+SET client_encoding TO 'UTF8';
+
 BEGIN;
+
+-- Limpia datos demo previos (también repara filas cargadas con tildes dañadas).
+DELETE FROM ofertas.ofertas
+WHERE empresa_id IN (
+    SELECT id FROM ofertas.empresas
+    WHERE ruc BETWEEN '00000000002' AND '00000000009'
+);
+DELETE FROM ofertas.empresas
+WHERE ruc BETWEEN '00000000002' AND '00000000009';
 
 INSERT INTO ofertas.empresas (ruc, razon_social, estado)
 VALUES
