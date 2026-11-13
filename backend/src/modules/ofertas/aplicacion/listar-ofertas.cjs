@@ -1,7 +1,7 @@
 const MODALIDADES = ["presencial", "remota", "hibrida"];
 const TAMANO_PAGINA_PREDETERMINADO = 9;
 const TAMANO_PAGINA_MAXIMO = 50;
-const CICLO_MAXIMO = 12;
+const CICLO_MAXIMO = 10;
 
 class ConsultaInvalidaError extends Error {
   constructor(mensaje) {

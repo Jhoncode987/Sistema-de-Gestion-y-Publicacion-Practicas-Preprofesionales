@@ -7,7 +7,7 @@ const SITIO_UNSCH = "https://enlinea.unsch.edu.pe/";
 // En producción se define VITE_API_URL con la dirección del backend.
 const URL_API = import.meta.env.VITE_API_URL ?? "";
 
-const CICLOS = Array.from({ length: 12 }, (_, i) => i + 1);
+const CICLOS = Array.from({ length: 10 }, (_, i) => i + 1);
 
 const MODALIDADES = [
   { valor: "presencial", etiqueta: "Presencial" },

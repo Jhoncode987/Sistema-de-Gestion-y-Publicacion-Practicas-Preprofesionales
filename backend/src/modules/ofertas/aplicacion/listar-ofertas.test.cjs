@@ -46,7 +46,7 @@ test("rechaza parámetros inválidos", () => {
   const invalidos = [
     { modalidad: "nocturna" },
     { ciclo: "0" },
-    { ciclo: "13" },
+    { ciclo: "11" },
     { ciclo: "abc" },
     { page: "0" },
     { page: "-1" },
