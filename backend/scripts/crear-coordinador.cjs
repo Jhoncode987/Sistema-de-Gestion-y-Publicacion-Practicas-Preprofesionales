@@ -18,7 +18,7 @@ async function principal() {
     return;
   }
 
-  const pool = new Pool();
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL || undefined });
 
   try {
     const crear = crearCrearCoordinador({
