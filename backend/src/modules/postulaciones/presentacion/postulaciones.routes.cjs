@@ -2,7 +2,7 @@ const express = require("express");
 
 const { crearManejadores } = require("./postulaciones.manejadores.cjs");
 
-function crearPostulacionesRouter({ soloEstudiante, soloEmpresa, ...casosDeUso }) {
+function crearPostulacionesRouter({ soloEstudiante, soloEmpresa, empresaOCoordinador, ...casosDeUso }) {
   const router = express.Router();
   const m = crearManejadores(casosDeUso);
 
@@ -15,6 +15,9 @@ function crearPostulacionesRouter({ soloEstudiante, soloEmpresa, ...casosDeUso }
   router.get("/oferta/:ofertaId", soloEmpresa, m.postulantes);
   router.post("/:id/aceptar", soloEmpresa, m.aceptar);
   router.post("/:id/rechazar", soloEmpresa, m.rechazar);
+
+  // Empresa dueña o coordinación
+  router.post("/:id/finalizar", empresaOCoordinador, m.finalizar);
 
   return router;
 }

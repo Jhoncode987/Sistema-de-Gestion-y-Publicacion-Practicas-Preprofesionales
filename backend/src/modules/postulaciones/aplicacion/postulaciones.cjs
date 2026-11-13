@@ -136,7 +136,7 @@ function crearListarPostulantes({ postulacionesRepository, obtenerPerfilUsuario,
 
     return {
       oferta: { id: oferta.id, titulo: oferta.titulo, vacantes: oferta.vacantes, estado: oferta.estado },
-      aceptadas: filas.filter((f) => f.estado === "aceptada").length,
+      aceptadas: filas.filter((f) => ["aceptada", "finalizada"].includes(f.estado)).length,
       items: filas.map((f) => {
         const e = porId.get(String(f.estudianteId));
 
@@ -249,7 +249,43 @@ function crearDecidirPostulacion({ postulacionesRepository, obtenerPerfilUsuario
   };
 }
 
+// La empresa dueña de la oferta (o la coordinación) marca la práctica como terminada.
+function crearFinalizarPractica({ postulacionesRepository, obtenerPerfilUsuario, ofertas }) {
+  return async function finalizarPractica(usuarioId, id) {
+    const postulacionId = validarId(id, "La postulación no existe");
+    const perfil = await obtenerPerfilUsuario(usuarioId);
+
+    if (!perfil || !["empresa", "coordinador"].includes(perfil.rol)) {
+      throw new AccesoDenegadoError();
+    }
+
+    const postulacion = await postulacionesRepository.obtener(postulacionId);
+
+    // Una empresa solo ve las de sus ofertas; las ajenas responden "no existe".
+    const permitido =
+      postulacion &&
+      (perfil.rol === "coordinador" ||
+        Boolean(await ofertas.obtenerOfertaDeEmpresaUsuario(perfil.id, postulacion.ofertaId)));
+
+    if (!permitido) {
+      throw new NoEncontradoError("La postulación no existe");
+    }
+
+    const finalizada = await postulacionesRepository.finalizar(postulacion.id);
+
+    if (!finalizada) {
+      throw new ReglaDeNegocioError(
+        "TRANSICION_INVALIDA",
+        "Solo se puede finalizar una práctica aceptada"
+      );
+    }
+
+    return { postulacion: finalizada };
+  };
+}
+
 module.exports = {
+  crearFinalizarPractica,
   crearPostular,
   crearListarMisPostulaciones,
   crearRetirarPostulacion,

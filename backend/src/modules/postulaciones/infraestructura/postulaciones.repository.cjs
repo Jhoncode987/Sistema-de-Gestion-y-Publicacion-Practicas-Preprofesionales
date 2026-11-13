@@ -1,6 +1,7 @@
 const COLUMNAS = `
   id::text, oferta_id::text AS "ofertaId", estudiante_id::text AS "estudianteId",
-  estado, motivo, creada_en AS "creadaEn", decidida_en AS "decididaEn"`;
+  estado, motivo, creada_en AS "creadaEn", decidida_en AS "decididaEn",
+  finalizada_en AS "finalizadaEn"`;
 
 function crearPostulacionesRepository(pool) {
   return {
@@ -40,7 +41,7 @@ function crearPostulacionesRepository(pool) {
       const { rows } = await pool.query(
         `SELECT ${COLUMNAS} FROM postulaciones.postulaciones
           WHERE oferta_id = $1
-          ORDER BY CASE estado WHEN 'pendiente' THEN 0 WHEN 'aceptada' THEN 1 ELSE 2 END,
+          ORDER BY CASE estado WHEN 'pendiente' THEN 0 WHEN 'aceptada' THEN 1 WHEN 'finalizada' THEN 2 ELSE 3 END,
                    creada_en, id`,
         [ofertaId]
       );
@@ -55,6 +56,19 @@ function crearPostulacionesRepository(pool) {
           WHERE id = $1 AND estudiante_id = $2 AND estado = 'pendiente'
           RETURNING ${COLUMNAS}`,
         [id, estudianteId]
+      );
+
+      return rows[0] ?? null;
+    },
+
+    // Solo una práctica aceptada puede finalizar; la vacante sigue ocupada.
+    async finalizar(id) {
+      const { rows } = await pool.query(
+        `UPDATE postulaciones.postulaciones
+            SET estado = 'finalizada', finalizada_en = now()
+          WHERE id = $1 AND estado = 'aceptada'
+          RETURNING ${COLUMNAS}`,
+        [id]
       );
 
       return rows[0] ?? null;
@@ -109,7 +123,7 @@ function crearPostulacionesRepository(pool) {
 
         const conteo = await cliente.query(
           `SELECT count(*)::int AS n FROM postulaciones.postulaciones
-            WHERE oferta_id = $1 AND estado = 'aceptada'`,
+            WHERE oferta_id = $1 AND estado IN ('aceptada', 'finalizada')`,
           [ofertaId]
         );
 

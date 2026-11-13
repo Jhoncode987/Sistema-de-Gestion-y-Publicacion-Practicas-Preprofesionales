@@ -43,6 +43,7 @@ La decisión está registrada en el [ADR-006](docs/02-arquitectura/decisiones-ar
    psql -d nombre_de_la_base -f backend/migrations/006_motivo_de_cierre.sql
    psql -d nombre_de_la_base -f backend/migrations/007_perfil_academico_estudiante.sql
    psql -d nombre_de_la_base -f backend/migrations/008_crear_postulaciones.sql
+   psql -d nombre_de_la_base -f backend/migrations/009_finalizar_practica.sql
    psql -d nombre_de_la_base -f backend/database/001_datos_prueba.sql
    psql -d nombre_de_la_base -f backend/database/002_datos_prueba_ofertas.sql   # opcional: ~23 ofertas para probar filtros y paginación
    ```
