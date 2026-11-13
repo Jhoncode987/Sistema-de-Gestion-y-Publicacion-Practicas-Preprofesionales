@@ -767,3 +767,89 @@ button:disabled {
     display: none;
   }
 }
+
+/* Panel de empresa */
+.contenedor section + section {
+  margin-top: 48px;
+}
+
+.formulario-oferta {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  padding: 24px;
+  background: #fff;
+  border: 1px solid var(--borde);
+  border-top: 4px solid var(--dorado);
+  border-radius: 12px;
+}
+
+.formulario-oferta .campo {
+  grid-column: span 2;
+}
+
+.formulario-oferta .campo--ancho {
+  grid-column: 1 / -1;
+}
+
+.campo textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #cfc4bd;
+  border-radius: 8px;
+  background: #fff;
+  color: var(--texto);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.4;
+  resize: vertical;
+}
+
+.campo textarea:focus-visible {
+  outline: 3px solid var(--dorado);
+  outline-offset: 1px;
+}
+
+.aviso--info {
+  margin-bottom: 28px;
+  border-color: #e3c56f;
+  background: #fbf3d9;
+  color: #5b4a0c;
+}
+
+.aviso--exito {
+  border-color: #9ccaa5;
+  background: #e8f5ea;
+  color: #1f5a2c;
+}
+
+.estado--revision {
+  background: #fbf3d9;
+  color: #7a5b00;
+}
+
+.estado--publicada {
+  background: #e3f3e6;
+  color: #1f6b30;
+}
+
+.estado--rechazada {
+  background: #fbe3e3;
+  color: #8a1c1c;
+}
+
+.estado--cerrada {
+  background: #ececec;
+  color: #555;
+}
+
+@media (max-width: 720px) {
+  .formulario-oferta {
+    grid-template-columns: 1fr;
+  }
+
+  .formulario-oferta .campo {
+    grid-column: 1 / -1;
+  }
+}

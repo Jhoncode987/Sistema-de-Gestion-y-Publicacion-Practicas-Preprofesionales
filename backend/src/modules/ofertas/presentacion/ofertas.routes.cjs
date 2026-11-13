@@ -1,43 +1,16 @@
 const express = require("express");
 
-const {
-  ConsultaInvalidaError
-} = require("../aplicacion/listar-ofertas.cjs");
+const { crearManejadores } = require("./ofertas.manejadores.cjs");
 
-function responderError(res, error, contexto) {
-  if (error instanceof ConsultaInvalidaError) {
-    return res.status(400).json({
-      codigo: "PARAMETROS_INVALIDOS",
-      mensaje: error.message
-    });
-  }
-
-  console.error(`Error al ${contexto}:`, error.code);
-
-  return res.status(503).json({
-    codigo: "SERVICIO_NO_DISPONIBLE",
-    mensaje: "No se pudieron consultar las ofertas"
-  });
-}
-
-function crearOfertasRouter({ listarOfertas, listarFiltros }) {
+// soloEmpresa es el middleware de rol que entrega el módulo Identidad.
+function crearOfertasRouter({ soloEmpresa, ...casosDeUso }) {
   const router = express.Router();
+  const m = crearManejadores(casosDeUso);
 
-  router.get("/filtros", async (req, res) => {
-    try {
-      res.json(await listarFiltros());
-    } catch (error) {
-      responderError(res, error, "listar filtros");
-    }
-  });
-
-  router.get("/", async (req, res) => {
-    try {
-      res.json(await listarOfertas(req.query));
-    } catch (error) {
-      responderError(res, error, "listar ofertas");
-    }
-  });
+  router.get("/filtros", m.filtros);
+  router.get("/mias", soloEmpresa, m.mias);
+  router.get("/", m.listar);
+  router.post("/", soloEmpresa, m.publicar);
 
   return router;
 }

@@ -18,6 +18,11 @@ const {
 } = require("./src/modules/ofertas/aplicacion/listar-filtros.cjs");
 
 const {
+  crearPublicarOferta,
+  crearListarMisOfertas
+} = require("./src/modules/ofertas/aplicacion/publicar-oferta.cjs");
+
+const {
   crearOfertasRouter
 } = require("./src/modules/ofertas/presentacion/ofertas.routes.cjs");
 
@@ -27,7 +32,7 @@ const { crearLimitadorIntentos } = require("./src/modules/identidad/aplicacion/l
 const { crearRegistrarUsuario } = require("./src/modules/identidad/aplicacion/registrar-usuario.cjs");
 const { crearIniciarSesion } = require("./src/modules/identidad/aplicacion/iniciar-sesion.cjs");
 const { crearObtenerPerfil } = require("./src/modules/identidad/aplicacion/obtener-perfil.cjs");
-const { crearAutenticar } = require("./src/modules/identidad/presentacion/autenticacion.middleware.cjs");
+const { crearAutenticar, requerirRol } = require("./src/modules/identidad/presentacion/autenticacion.middleware.cjs");
 const { crearAuthRouter } = require("./src/modules/identidad/presentacion/auth.routes.cjs");
 
 if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
@@ -106,6 +111,7 @@ const usuariosRepository = crearUsuariosRepository(pool);
 const tokens = crearServicioTokens({ secreto: process.env.JWT_SECRET });
 const limitador = crearLimitadorIntentos();
 const autenticar = crearAutenticar(tokens);
+const obtenerPerfil = crearObtenerPerfil({ usuariosRepository });
 
 app.use(
   "/api/v1/auth",
@@ -113,15 +119,25 @@ app.use(
     autenticar,
     registrarUsuario: crearRegistrarUsuario({ usuariosRepository, tokens }),
     iniciarSesion: crearIniciarSesion({ usuariosRepository, tokens, limitador }),
-    obtenerPerfil: crearObtenerPerfil({ usuariosRepository })
+    obtenerPerfil
   })
 );
 
-// Las ofertas solo se muestran a quienes iniciaron sesión (cualquier rol).
+// Ofertas: la consulta es para cualquier usuario con sesión; publicar y ver
+// las propias es solo para empresas. Ofertas consulta a Identidad por su caso
+// de uso (obtenerPerfil), nunca por sus tablas.
+const obtenerPerfilUsuario = (id) => obtenerPerfil(id);
+
 app.use(
   "/api/v1/ofertas",
   autenticar,
-  crearOfertasRouter({ listarOfertas, listarFiltros })
+  crearOfertasRouter({
+    soloEmpresa: requerirRol("empresa"),
+    listarOfertas,
+    listarFiltros,
+    publicarOferta: crearPublicarOferta({ ofertasRepository, obtenerPerfilUsuario }),
+    listarMisOfertas: crearListarMisOfertas({ ofertasRepository, obtenerPerfilUsuario })
+  })
 );
 
 // Iniciar el servidor después de configurar las rutas.

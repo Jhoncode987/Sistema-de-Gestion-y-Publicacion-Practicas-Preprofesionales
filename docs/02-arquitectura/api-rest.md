@@ -57,6 +57,8 @@ El backend usa Node.js con Express 5 (ADR-006). Estado de implementación:
 | POST /api/v1/auth/registro | Implementada | Crea una cuenta institucional de estudiante (`codigoEstudiante`; el correo debe ser `@unsch.edu.pe`) o una cuenta de empresa (`ruc`, `razonSocial`; correo libre) y devuelve `{ usuario, token }` con 201. El coordinador no se registra aquí. Errores: 400 `DATOS_INVALIDOS`, 409 `CUENTA_DUPLICADA`. |
 | POST /api/v1/auth/login | Implementada | Recibe `{ correo, clave }` y devuelve `{ usuario, token }`. Errores: 401 `CREDENCIALES_INVALIDAS` (mismo mensaje para correo inexistente, clave incorrecta o cuenta inactiva) y 429 `DEMASIADOS_INTENTOS`. |
 | GET /api/v1/auth/yo | Implementada | Con `Authorization: Bearer <token>` devuelve `{ usuario }`; 401 `NO_AUTENTICADO` si falta o venció. |
+| POST /api/v1/ofertas | Implementada | Solo rol empresa. Recibe `titulo`, `descripcion`, `carrera`, `ciclo_minimo` (1 a 10), `creditos_minimos`, `modalidad`, `vacantes` (1 a 100) y `fecha_limite` (AAAA-MM-DD, posterior a hoy y máximo 365 días). Responde 201 con la oferta en estado `pendiente_revision`; la empresa se toma de la cuenta, nunca del cuerpo. Errores: 400 `DATOS_INVALIDOS`, 403 `ACCESO_DENEGADO`, 409 `RUC_EN_USO`. |
+| GET /api/v1/ofertas/mias | Implementada | Solo rol empresa. Devuelve `{ empresa: { razonSocial, ruc, estado }, items }` con todas sus ofertas, en cualquier estado. |
 | Resto de rutas de la tabla | Pendientes | |
 
 **Diferencias actuales con el contrato propuesto** (por alinear cuando se amplíe el módulo):
