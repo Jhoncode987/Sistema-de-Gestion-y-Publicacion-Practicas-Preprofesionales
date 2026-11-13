@@ -14,6 +14,10 @@ const {
 } = require("./src/modules/ofertas/aplicacion/listar-ofertas.cjs");
 
 const {
+  crearListarFiltros
+} = require("./src/modules/ofertas/aplicacion/listar-filtros.cjs");
+
+const {
   crearOfertasRouter
 } = require("./src/modules/ofertas/presentacion/ofertas.routes.cjs");
 
@@ -79,8 +83,12 @@ app.get("/api/v1/salud/db", async (req, res) => {
 // Conectar las piezas del módulo Ofertas.
 const ofertasRepository = crearOfertasRepository(pool);
 const listarOfertas = crearListarOfertas(ofertasRepository);
+const listarFiltros = crearListarFiltros(ofertasRepository);
 
-app.use("/api/v1/ofertas", crearOfertasRouter(listarOfertas));
+app.use(
+  "/api/v1/ofertas",
+  crearOfertasRouter({ listarOfertas, listarFiltros })
+);
 
 // Iniciar el servidor después de configurar las rutas.
 app.listen(PORT, () => {

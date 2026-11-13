@@ -77,6 +77,15 @@ Este documento registra las decisiones principales para el Sistema Web para la G
 - **Costes y riesgos:** Express no impone estructura, por lo que los límites entre módulos y la regla de dependencias se mantienen por convención y revisión; sin ORM, el mapeo de datos y las migraciones son manuales; aún no existen pruebas automatizadas.
 - **Criterio de validación:** cada módulo respeta la estructura de carpetas; la capa de aplicación no importa `express` ni `pg`; los casos de uso se prueban con un repositorio simulado (pendiente).
 
+## ADR-007 — Bumeran como referencia funcional, sin integración
+
+- **Estado:** aceptado.
+- **Contexto:** la docente pidió usar Bumeran como referencia para la arquitectura. Se evaluó además usar sus avisos como fuente de ofertas para el sistema.
+- **Decisión:** Bumeran se usa solo como referencia funcional (cuentas de candidato y empresa, publicación de avisos, búsqueda con filtros, postulación y alertas). El sistema no importa ni consulta datos de Bumeran.
+- **Alternativas consideradas:** importar avisos de Bumeran. Se descarta porque, según la información disponible, Bumeran no ofrece una API pública para consultar ofertas, por lo que habría que extraer datos de su sitio web; porque las ofertas importadas no pasarían por la validación del coordinador (RF01) ni por la comprobación de elegibilidad con SIGA (RC02); y porque la postulación ocurriría fuera del sistema, sin seguimiento.
+- **Consecuencias:** las empresas y ofertas se registran directamente en el sistema y las valida el coordinador. Si en el futuro existe un acuerdo autorizado con un portal externo, se integraría mediante un puerto y un adaptador, como se hace con SIGA (ADR-004).
+- **Criterio de validación:** ningún módulo del código depende de un servicio externo de ofertas.
+
 ## Resumen de trazabilidad
 
 | Decisión | Drivers principales | Resultado esperado |
@@ -87,3 +96,4 @@ Este documento registra las decisiones principales para el Sistema Web para la G
 | ADR-004 Adaptador SIGA | DA03, DA06 | Integración externa aislada y sujeta a acceso autorizado. |
 | ADR-005 Contratos y pruebas | DA04, DA06 | Menos regresiones y mantenimiento más predecible. |
 | ADR-006 Stack Node.js, Express, React y PostgreSQL | DA04, DA05, DA06 | Stack confirmado; estructura por módulo y SQL explícito. |
+| ADR-007 Bumeran como referencia funcional | RF01, RC02 | No se integra con portales externos; las ofertas se validan en el sistema. |

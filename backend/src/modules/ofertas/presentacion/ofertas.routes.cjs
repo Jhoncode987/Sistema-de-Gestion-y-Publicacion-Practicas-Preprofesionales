@@ -1,23 +1,41 @@
 const express = require("express");
 
-function crearOfertasRouter(listarOfertas) {
+const {
+  ConsultaInvalidaError
+} = require("../aplicacion/listar-ofertas.cjs");
+
+function responderError(res, error, contexto) {
+  if (error instanceof ConsultaInvalidaError) {
+    return res.status(400).json({
+      codigo: "PARAMETROS_INVALIDOS",
+      mensaje: error.message
+    });
+  }
+
+  console.error(`Error al ${contexto}:`, error.code);
+
+  return res.status(503).json({
+    codigo: "SERVICIO_NO_DISPONIBLE",
+    mensaje: "No se pudieron consultar las ofertas"
+  });
+}
+
+function crearOfertasRouter({ listarOfertas, listarFiltros }) {
   const router = express.Router();
+
+  router.get("/filtros", async (req, res) => {
+    try {
+      res.json(await listarFiltros());
+    } catch (error) {
+      responderError(res, error, "listar filtros");
+    }
+  });
 
   router.get("/", async (req, res) => {
     try {
-      const resultado = await listarOfertas();
-
-      res.json({
-        estado: "ok",
-        ...resultado
-      });
+      res.json(await listarOfertas(req.query));
     } catch (error) {
-      console.error("Error al listar ofertas:", error.code);
-
-      res.status(503).json({
-        estado: "error",
-        mensaje: "No se pudieron consultar las ofertas"
-      });
+      responderError(res, error, "listar ofertas");
     }
   });
 

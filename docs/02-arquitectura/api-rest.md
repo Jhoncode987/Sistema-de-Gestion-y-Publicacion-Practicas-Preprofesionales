@@ -52,13 +52,13 @@ El backend usa Node.js con Express 5 (ADR-006). Estado de implementación:
 |---|---|---|
 | GET /api/v1/salud | Implementada | Comprobación de que el backend responde; no forma parte del contrato de negocio. |
 | GET /api/v1/salud/db | Implementada | Diagnóstico de la conexión con PostgreSQL. |
-| GET /api/v1/ofertas | Implementada de forma parcial | Devuelve hasta 20 ofertas publicadas, de empresas aprobadas y con fecha límite vigente. Aún no filtra por modalidad, carrera ni ciclo, no pagina y no requiere autenticación. |
+| GET /api/v1/ofertas | Implementada de forma parcial | Ofertas publicadas, de empresas aprobadas y con fecha límite vigente. Filtros: `q` (título, empresa o descripción), `modalidad` (presencial, remota o hibrida), `carrera` y `ciclo` (ofertas con ciclo mínimo igual o menor). Paginación con `page` y `pageSize` (9 por defecto, máximo 50). Responde `{ items, page, pageSize, total }`. No requiere autenticación todavía. |
+| GET /api/v1/ofertas/filtros | Implementada | Carreras con ofertas vigentes y modalidades disponibles, para llenar los filtros del portal. |
 | Resto de rutas de la tabla | Pendientes | |
 
 **Diferencias actuales con el contrato propuesto** (por alinear cuando se amplíe el módulo):
 
-- La respuesta actual es `{ estado, cantidad, ofertas }`; el contrato define `items`, `page`, `pageSize` y `total`.
-- El error actual es `{ estado, mensaje }` con código 503 para cualquier falla; el contrato define `codigo`, `mensaje` y `correlationId`, y distingue 400, 401, 403, 404, 409 y 422.
-- RF03 (mostrar solo las ofertas de la carrera y ciclo del estudiante) requiere autenticación, que todavía no existe.
+- Los errores actuales son `{ codigo, mensaje }` con 400 (`PARAMETROS_INVALIDOS`) o 503 (`SERVICIO_NO_DISPONIBLE`); falta `correlationId` y los códigos 401, 403, 404, 409 y 422, que dependen de funciones aún no implementadas.
+- RF03 se cumple de forma parcial: el estudiante elige su carrera y ciclo en los filtros. Cuando exista autenticación, esos datos saldrán de su identidad y no de la URL.
 
 Pendientes: OpenAPI y pruebas. Un cambio de adaptador conserva estos contratos mientras no cambie el comportamiento del negocio (AC03).

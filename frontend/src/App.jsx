@@ -7,31 +7,84 @@ const SITIO_UNSCH = "https://enlinea.unsch.edu.pe/";
 // En producción se define VITE_API_URL con la dirección del backend.
 const URL_API = import.meta.env.VITE_API_URL ?? "";
 
+const CICLOS = Array.from({ length: 10 }, (_, i) => i + 1);
+
+const MODALIDADES = [
+  { valor: "presencial", etiqueta: "Presencial" },
+  { valor: "remota", etiqueta: "Remota" },
+  { valor: "hibrida", etiqueta: "Híbrida" }
+];
+
+const FILTROS_VACIOS = { q: "", modalidad: "", carrera: "", ciclo: "" };
+const POR_DEFECTO = { items: [], total: 0, pageSize: 9 };
+
 export default function App() {
-  const [ofertas, setOfertas] = useState([]);
+  const [carreras, setCarreras] = useState([]);
+  const [borrador, setBorrador] = useState(FILTROS_VACIOS);
+  const [consulta, setConsulta] = useState({ ...FILTROS_VACIOS, page: 1 });
+  const [resultado, setResultado] = useState(POR_DEFECTO);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
 
+  // Carreras disponibles para el filtro. Si falla, el filtro queda sin opciones.
+  useEffect(() => {
+    const controller = new AbortController();
+
+    async function cargarFiltros() {
+      try {
+        const respuesta = await fetch(`${URL_API}/api/v1/ofertas/filtros`, {
+          signal: controller.signal
+        });
+        const datos = await respuesta.json();
+
+        if (respuesta.ok && Array.isArray(datos.carreras)) {
+          setCarreras(datos.carreras);
+        }
+      } catch {
+        // Sin filtros de carrera el portal sigue funcionando.
+      }
+    }
+
+    cargarFiltros();
+
+    return () => controller.abort();
+  }, []);
+
+  // Ofertas según la búsqueda aplicada y la página actual.
   useEffect(() => {
     const controller = new AbortController();
 
     async function cargarOfertas() {
       try {
-        const respuesta = await fetch(`${URL_API}/api/v1/ofertas`, {
-          signal: controller.signal
-        });
+        const parametros = new URLSearchParams();
 
-        if (!respuesta.ok) {
-          throw new Error("No se pudieron obtener las ofertas.");
+        for (const [clave, valor] of Object.entries(consulta)) {
+          if (valor !== "") {
+            parametros.set(clave, String(valor));
+          }
         }
 
-        const datos = await respuesta.json();
+        const respuesta = await fetch(
+          `${URL_API}/api/v1/ofertas?${parametros}`,
+          { signal: controller.signal }
+        );
+        const datos = await respuesta.json().catch(() => null);
 
-        if (!Array.isArray(datos.ofertas)) {
+        if (!respuesta.ok) {
+          throw new Error(
+            datos?.mensaje ?? "No se pudieron obtener las ofertas."
+          );
+        }
+
+        if (!datos || !Array.isArray(datos.items)) {
           throw new Error("El servidor devolvió un formato inesperado.");
         }
 
-        setOfertas(datos.ofertas);
+        setResultado({
+          items: datos.items,
+          total: datos.total,
+          pageSize: datos.pageSize
+        });
       } catch (err) {
         if (!controller.signal.aborted) {
           setError(err.message);
@@ -46,7 +99,41 @@ export default function App() {
     cargarOfertas();
 
     return () => controller.abort();
-  }, []);
+  }, [consulta]);
+
+  function cambiarConsulta(nueva) {
+    setCargando(true);
+    setError("");
+    setConsulta(nueva);
+  }
+
+  function cambiarCampo(evento) {
+    const { name, value } = evento.target;
+    setBorrador((anterior) => ({ ...anterior, [name]: value }));
+  }
+
+  function buscar(evento) {
+    evento.preventDefault();
+    cambiarConsulta({ ...borrador, page: 1 });
+  }
+
+  function limpiar() {
+    setBorrador(FILTROS_VACIOS);
+    cambiarConsulta({ ...FILTROS_VACIOS, page: 1 });
+  }
+
+  function irAPagina(pagina) {
+    cambiarConsulta({ ...consulta, page: pagina });
+    document.getElementById("ofertas")?.scrollIntoView({ behavior: "smooth" });
+  }
+
+  const { items, total, pageSize } = resultado;
+  const totalPaginas = Math.max(1, Math.ceil(total / pageSize));
+  const primera = (consulta.page - 1) * pageSize + 1;
+  const ultima = primera + items.length - 1;
+  const hayFiltros = Boolean(
+    consulta.q || consulta.modalidad || consulta.carrera || consulta.ciclo
+  );
 
   // La fecha límite es un DATE de PostgreSQL: llega como medianoche UTC,
   // por eso se formatea en UTC para no mostrar un día menos.
@@ -112,32 +199,120 @@ export default function App() {
             Ofertas disponibles
           </h2>
 
+          <form className="filtros" onSubmit={buscar} role="search">
+            <label className="campo campo--buscar">
+              Buscar
+              <input
+                type="search"
+                name="q"
+                value={borrador.q}
+                onChange={cambiarCampo}
+                placeholder="Título, empresa o descripción"
+                maxLength={100}
+              />
+            </label>
+
+            <label className="campo">
+              Carrera
+              <select
+                name="carrera"
+                value={borrador.carrera}
+                onChange={cambiarCampo}
+              >
+                <option value="">Todas</option>
+                {carreras.map((carrera) => (
+                  <option key={carrera} value={carrera}>
+                    {carrera}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="campo">
+              Modalidad
+              <select
+                name="modalidad"
+                value={borrador.modalidad}
+                onChange={cambiarCampo}
+              >
+                <option value="">Todas</option>
+                {MODALIDADES.map(({ valor, etiqueta }) => (
+                  <option key={valor} value={valor}>
+                    {etiqueta}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="campo">
+              Mi ciclo
+              <select
+                name="ciclo"
+                value={borrador.ciclo}
+                onChange={cambiarCampo}
+              >
+                <option value="">Cualquiera</option>
+                {CICLOS.map((ciclo) => (
+                  <option key={ciclo} value={ciclo}>
+                    {ciclo}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <div className="filtros__acciones">
+              <button type="submit">Buscar</button>
+              <button
+                type="button"
+                className="boton-secundario"
+                onClick={limpiar}
+              >
+                Limpiar
+              </button>
+            </div>
+
+            <p className="filtros__ayuda">
+              «Mi ciclo» muestra las ofertas cuyo ciclo mínimo es igual o menor
+              al tuyo.
+            </p>
+          </form>
+
           {cargando && <p role="status">Cargando ofertas…</p>}
 
           {error && (
             <div className="aviso error" role="alert">
               <p>{error}</p>
-              <p>Comprueba que el backend esté en ejecución.</p>
-              <button onClick={() => window.location.reload()}>
+              <button onClick={() => cambiarConsulta({ ...consulta })}>
                 Reintentar
               </button>
             </div>
           )}
 
-          {!cargando && !error && ofertas.length === 0 && (
-            <p className="aviso">No hay ofertas publicadas y vigentes.</p>
+          {!cargando && !error && total === 0 && (
+            <p className="aviso">
+              {hayFiltros
+                ? "No se encontraron ofertas con esos filtros."
+                : "No hay ofertas publicadas y vigentes."}
+            </p>
           )}
 
-          {!cargando && !error && ofertas.length > 0 && (
+          {!error && items.length > 0 && (
             <>
               <p className="resultado">
-                Ofertas mostradas: {ofertas.length}
+                Mostrando {primera}–{ultima} de {total}{" "}
+                {total === 1 ? "oferta" : "ofertas"}
               </p>
 
-              <div className="listado">
-                {ofertas.map((oferta) => (
+              <div
+                className={`listado${cargando ? " listado--cargando" : ""}`}
+                aria-busy={cargando}
+              >
+                {items.map((oferta) => (
                   <article className="tarjeta" key={oferta.id}>
-                    <span className="etiqueta">{oferta.modalidad}</span>
+                    <span className="etiqueta">
+                      {MODALIDADES.find((m) => m.valor === oferta.modalidad)
+                        ?.etiqueta ?? oferta.modalidad}
+                    </span>
 
                     <h3>{oferta.titulo}</h3>
                     <p className="empresa">{oferta.empresa}</p>
@@ -168,6 +343,28 @@ export default function App() {
                   </article>
                 ))}
               </div>
+
+              {totalPaginas > 1 && (
+                <nav className="paginacion" aria-label="Paginación">
+                  <button
+                    className="boton-secundario"
+                    disabled={cargando || consulta.page <= 1}
+                    onClick={() => irAPagina(consulta.page - 1)}
+                  >
+                    ← Anterior
+                  </button>
+                  <span>
+                    Página {consulta.page} de {totalPaginas}
+                  </span>
+                  <button
+                    className="boton-secundario"
+                    disabled={cargando || consulta.page >= totalPaginas}
+                    onClick={() => irAPagina(consulta.page + 1)}
+                  >
+                    Siguiente →
+                  </button>
+                </nav>
+              )}
             </>
           )}
         </section>

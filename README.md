@@ -45,6 +45,7 @@ La decisión está registrada en el [ADR-006](docs/02-arquitectura/decisiones-ar
    cp .env.example .env     # completa los datos de tu PostgreSQL
    npm install
    npm start          # o npm run dev para reiniciar al guardar
+   npm test           # pruebas automáticas (no necesitan la base de datos)
    ```
    Comprueba que responde en `http://localhost:3000/api/v1/salud`.
 3. Frontend (puerto 5173):
