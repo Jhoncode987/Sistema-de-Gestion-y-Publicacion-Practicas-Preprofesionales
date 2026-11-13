@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import Acceso from "./Acceso.jsx";
+import { useSesion } from "./sesion.js";
 import "./App.css";
 
 const SITIO_UNSCH = "https://enlinea.unsch.edu.pe/";
@@ -18,7 +20,15 @@ const MODALIDADES = [
 const FILTROS_VACIOS = { q: "", modalidad: "", carrera: "", ciclo: "" };
 const POR_DEFECTO = { items: [], total: 0, pageSize: 9 };
 
+const ETIQUETA_ROL = {
+  estudiante: "Estudiante",
+  empresa: "Empresa",
+  coordinador: "Coordinador"
+};
+
 export default function App() {
+  const sesion = useSesion();
+  const [verAcceso, setVerAcceso] = useState(false);
   const [carreras, setCarreras] = useState([]);
   const [borrador, setBorrador] = useState(FILTROS_VACIOS);
   const [consulta, setConsulta] = useState({ ...FILTROS_VACIOS, page: 1 });
@@ -176,6 +186,33 @@ export default function App() {
           <nav className="navegacion" aria-label="Principal">
             <a href="#inicio" aria-current="page">Inicio</a>
             <a href="#ofertas">Ofertas</a>
+
+            {sesion.usuario ? (
+              <span className="sesion">
+                <span className="sesion__usuario">
+                  {sesion.usuario.nombre}
+                  <small>{ETIQUETA_ROL[sesion.usuario.rol]}</small>
+                </span>
+                <button
+                  type="button"
+                  className="boton-secundario"
+                  onClick={sesion.cerrarSesion}
+                >
+                  Salir
+                </button>
+              </span>
+            ) : (
+              !sesion.restaurando && (
+                <button
+                  type="button"
+                  className="boton-dorado boton-dorado--compacto"
+                  onClick={() => setVerAcceso((abierto) => !abierto)}
+                  aria-expanded={verAcceso}
+                >
+                  Ingresar
+                </button>
+              )
+            )}
           </nav>
         </div>
       </header>
@@ -192,6 +229,10 @@ export default function App() {
           </a>
         </div>
       </section>
+
+      {verAcceso && !sesion.usuario && (
+        <Acceso sesion={sesion} alTerminar={() => setVerAcceso(false)} />
+      )}
 
       <main className="contenedor" id="ofertas">
         <section aria-labelledby="titulo-ofertas">

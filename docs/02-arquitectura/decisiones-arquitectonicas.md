@@ -86,6 +86,15 @@ Este documento registra las decisiones principales para el Sistema Web para la G
 - **Consecuencias:** las empresas y ofertas se registran directamente en el sistema y las valida el coordinador. Si en el futuro existe un acuerdo autorizado con un portal externo, se integraría mediante un puerto y un adaptador, como se hace con SIGA (ADR-004).
 - **Criterio de validación:** ningún módulo del código depende de un servicio externo de ofertas.
 
+## ADR-008 — Autenticación propia con contraseñas con hash y tokens firmados
+
+- **Estado:** aceptado.
+- **Contexto:** el sistema distingue tres roles (estudiante, empresa y coordinador) y las rutas de negocio deben protegerse por rol (seguridad, DA05).
+- **Decisión:** el módulo Identidad guarda las cuentas en su propio esquema (`identidad`). Las contraseñas se guardan con scrypt y sal aleatoria, nunca en claro. La sesión es un token JWT (HS256) de 8 horas, firmado con `JWT_SECRET`, que viaja en la cabecera `Authorization: Bearer`. El token se implementa con `node:crypto`, sin dependencias nuevas. Estudiantes y empresas se registran desde el portal; el coordinador solo se crea con un script administrativo. El inicio de sesión limita los intentos fallidos por correo (5 cada 15 minutos) y responde igual ante correo inexistente o clave incorrecta.
+- **Alternativas consideradas:** Passport, bcrypt y jsonwebtoken (más conocidas, pero añaden dependencias para algo pequeño); sesiones en base de datos (permiten revocar al instante, pero añaden una consulta por solicitud); inicio de sesión institucional (no hay acceso autorizado a un proveedor de identidad de la UNSCH).
+- **Consecuencias:** un token no se puede revocar antes de vencer, salvo desactivar la cuenta, que se comprueba en `/auth/yo`. El limitador es en memoria: se reinicia con el servidor y no se comparte entre instancias. El rol viaja dentro del token; los casos de uso sensibles deben volver a comprobarlo contra la base de datos cuando se implemente la validación del coordinador.
+- **Criterio de validación:** pruebas automáticas de hash, token manipulado o vencido, bloqueo por intentos y acceso denegado por rol.
+
 ## Resumen de trazabilidad
 
 | Decisión | Drivers principales | Resultado esperado |
@@ -97,3 +106,4 @@ Este documento registra las decisiones principales para el Sistema Web para la G
 | ADR-005 Contratos y pruebas | DA04, DA06 | Menos regresiones y mantenimiento más predecible. |
 | ADR-006 Stack Node.js, Express, React y PostgreSQL | DA04, DA05, DA06 | Stack confirmado; estructura por módulo y SQL explícito. |
 | ADR-007 Bumeran como referencia funcional | RF01, RC02 | No se integra con portales externos; las ofertas se validan en el sistema. |
+| ADR-008 Autenticación con hash y token firmado | DA05 | Rutas protegidas por rol; contraseñas nunca en claro. |
