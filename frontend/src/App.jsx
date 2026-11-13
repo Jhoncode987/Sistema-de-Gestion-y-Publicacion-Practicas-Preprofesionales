@@ -30,7 +30,7 @@ const ETIQUETA_ROL = {
   coordinador: "Coordinador"
 };
 
-function Inicio() {
+function Inicio({ token, alExpirar }) {
   const [carreras, setCarreras] = useState([]);
   const [borrador, setBorrador] = useState(FILTROS_VACIOS);
   const [consulta, setConsulta] = useState({ ...FILTROS_VACIOS, page: 1 });
@@ -45,8 +45,14 @@ function Inicio() {
     async function cargarFiltros() {
       try {
         const respuesta = await fetch(`${URL_API}/api/v1/ofertas/filtros`, {
-          signal: controller.signal
+          signal: controller.signal,
+          headers: { Authorization: `Bearer ${token}` }
         });
+
+        if (respuesta.status === 401) {
+          return alExpirar();
+        }
+
         const datos = await respuesta.json();
 
         if (respuesta.ok && Array.isArray(datos.carreras)) {
@@ -60,7 +66,7 @@ function Inicio() {
     cargarFiltros();
 
     return () => controller.abort();
-  }, []);
+  }, [token, alExpirar]);
 
   // Ofertas según la búsqueda aplicada y la página actual.
   useEffect(() => {
@@ -78,8 +84,16 @@ function Inicio() {
 
         const respuesta = await fetch(
           `${URL_API}/api/v1/ofertas?${parametros}`,
-          { signal: controller.signal }
+          {
+            signal: controller.signal,
+            headers: { Authorization: `Bearer ${token}` }
+          }
         );
+
+        if (respuesta.status === 401) {
+          return alExpirar();
+        }
+
         const datos = await respuesta.json().catch(() => null);
 
         if (!respuesta.ok) {
@@ -111,7 +125,7 @@ function Inicio() {
     cargarOfertas();
 
     return () => controller.abort();
-  }, [consulta]);
+  }, [consulta, token, alExpirar]);
 
   function cambiarConsulta(nueva) {
     setCargando(true);
@@ -355,10 +369,10 @@ function Inicio() {
   );
 }
 
-// Rutas con el hash de la URL (#/ingresar, #/registro/...). Cualquier otro
-// valor muestra el inicio, así que #ofertas sigue llevando a la lista.
+// Rutas de acceso con el hash de la URL. Cualquier otro valor lleva al inicio
+// de sesión (sin sesión) o al portal (con sesión), así que #ofertas sigue
+// llevando a la lista.
 const RUTAS_ACCESO = {
-  "#/ingresar": PaginaIngresar,
   "#/registro/institucional": PaginaRegistroInstitucional,
   "#/registro/empresa": PaginaRegistroEmpresa
 };
@@ -377,26 +391,23 @@ function useHash() {
   return hash;
 }
 
-export default function App() {
-  const sesion = useSesion();
-  const hash = useHash();
-  const Pagina = RUTAS_ACCESO[hash];
-  const enInicio = !Pagina;
+function iniciales(nombre) {
+  return nombre
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((palabra) => palabra[0].toUpperCase())
+    .join("");
+}
 
-  // Con la sesión iniciada no tiene sentido ver las páginas de acceso.
+function Portal({ sesion, hash }) {
+  // Al abrir #ofertas (o volver al inicio), baja a la sección pedida.
   useEffect(() => {
-    if (sesion.usuario && Pagina) {
-      window.location.hash = "#/";
-    }
-  }, [sesion.usuario, Pagina]);
+    const id = hash.replace(/^#\/?/, "");
+    document.getElementById(id)?.scrollIntoView();
+  }, [hash]);
 
-  // Al volver al inicio desde otra página, baja a la sección pedida (#ofertas).
-  useEffect(() => {
-    if (enInicio) {
-      const id = hash.replace(/^#\/?/, "");
-      document.getElementById(id)?.scrollIntoView();
-    }
-  }, [enInicio, hash]);
+  const { usuario } = sesion;
 
   return (
     <>
@@ -425,39 +436,30 @@ export default function App() {
           </a>
 
           <nav className="navegacion" aria-label="Principal">
-            <a href="#/" aria-current={enInicio ? "page" : undefined}>Inicio</a>
+            <a href="#/" aria-current="page">Inicio</a>
             <a href="#ofertas">Ofertas</a>
 
-            {sesion.usuario ? (
-              <span className="sesion">
-                <span className="sesion__usuario">
-                  {sesion.usuario.nombre}
-                  <small>{ETIQUETA_ROL[sesion.usuario.rol]}</small>
-                </span>
-                <button
-                  type="button"
-                  className="boton-secundario"
-                  onClick={sesion.cerrarSesion}
-                >
-                  Salir
-                </button>
+            <div className="usuario">
+              <div className="usuario__datos">
+                <span className="usuario__nombre">{usuario.nombre}</span>
+                <span className="usuario__rol">{ETIQUETA_ROL[usuario.rol]}</span>
+              </div>
+              <span className="usuario__avatar" aria-hidden="true">
+                {iniciales(usuario.nombre)}
               </span>
-            ) : (
-              !sesion.restaurando && (
-                <a
-                  className="boton-dorado boton-dorado--compacto"
-                  href="#/ingresar"
-                >
-                  Ingresar
-                </a>
-              )
-            )}
+              <button
+                type="button"
+                className="boton-secundario"
+                onClick={sesion.cerrarSesion}
+              >
+                Salir
+              </button>
+            </div>
           </nav>
         </div>
       </header>
 
-
-      {Pagina ? <Pagina sesion={sesion} /> : <Inicio />}
+      <Inicio token={sesion.token} alExpirar={sesion.cerrarSesion} />
 
       <footer className="pie">
         <div className="pie__interior">
@@ -474,7 +476,32 @@ export default function App() {
           </p>
         </div>
       </footer>
-
     </>
   );
+}
+
+export default function App() {
+  const sesion = useSesion();
+  const hash = useHash();
+  const conSesion = Boolean(sesion.usuario);
+  const esRutaAcceso = hash === "#/ingresar" || hash in RUTAS_ACCESO;
+
+  // Con la sesión iniciada no tiene sentido ver las pantallas de acceso.
+  useEffect(() => {
+    if (conSesion && esRutaAcceso) {
+      window.location.hash = "#/";
+    }
+  }, [conSesion, esRutaAcceso]);
+
+  if (sesion.restaurando) {
+    return <p className="cargando-sesion" role="status">Cargando…</p>;
+  }
+
+  if (!conSesion) {
+    const Pagina = RUTAS_ACCESO[hash] ?? PaginaIngresar;
+
+    return <Pagina sesion={sesion} />;
+  }
+
+  return <Portal sesion={sesion} hash={hash} />;
 }

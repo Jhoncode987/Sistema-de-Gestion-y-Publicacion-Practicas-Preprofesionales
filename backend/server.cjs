@@ -101,11 +101,6 @@ const ofertasRepository = crearOfertasRepository(pool);
 const listarOfertas = crearListarOfertas(ofertasRepository);
 const listarFiltros = crearListarFiltros(ofertasRepository);
 
-app.use(
-  "/api/v1/ofertas",
-  crearOfertasRouter({ listarOfertas, listarFiltros })
-);
-
 // Conectar las piezas del módulo Identidad.
 const usuariosRepository = crearUsuariosRepository(pool);
 const tokens = crearServicioTokens({ secreto: process.env.JWT_SECRET });
@@ -120,6 +115,13 @@ app.use(
     iniciarSesion: crearIniciarSesion({ usuariosRepository, tokens, limitador }),
     obtenerPerfil: crearObtenerPerfil({ usuariosRepository })
   })
+);
+
+// Las ofertas solo se muestran a quienes iniciaron sesión (cualquier rol).
+app.use(
+  "/api/v1/ofertas",
+  autenticar,
+  crearOfertasRouter({ listarOfertas, listarFiltros })
 );
 
 // Iniciar el servidor después de configurar las rutas.
