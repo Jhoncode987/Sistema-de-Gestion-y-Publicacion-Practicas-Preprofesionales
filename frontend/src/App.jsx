@@ -1,4 +1,10 @@
 import { useEffect, useState } from "react";
+import {
+  PaginaIngresar,
+  PaginaRegistroEmpresa,
+  PaginaRegistroInstitucional
+} from "./Acceso.jsx";
+import { useSesion } from "./sesion.js";
 import "./App.css";
 
 const SITIO_UNSCH = "https://enlinea.unsch.edu.pe/";
@@ -18,7 +24,13 @@ const MODALIDADES = [
 const FILTROS_VACIOS = { q: "", modalidad: "", carrera: "", ciclo: "" };
 const POR_DEFECTO = { items: [], total: 0, pageSize: 9 };
 
-export default function App() {
+const ETIQUETA_ROL = {
+  estudiante: "Estudiante",
+  empresa: "Empresa",
+  coordinador: "Coordinador"
+};
+
+function Inicio({ token, alExpirar }) {
   const [carreras, setCarreras] = useState([]);
   const [borrador, setBorrador] = useState(FILTROS_VACIOS);
   const [consulta, setConsulta] = useState({ ...FILTROS_VACIOS, page: 1 });
@@ -33,8 +45,14 @@ export default function App() {
     async function cargarFiltros() {
       try {
         const respuesta = await fetch(`${URL_API}/api/v1/ofertas/filtros`, {
-          signal: controller.signal
+          signal: controller.signal,
+          headers: { Authorization: `Bearer ${token}` }
         });
+
+        if (respuesta.status === 401) {
+          return alExpirar();
+        }
+
         const datos = await respuesta.json();
 
         if (respuesta.ok && Array.isArray(datos.carreras)) {
@@ -48,7 +66,7 @@ export default function App() {
     cargarFiltros();
 
     return () => controller.abort();
-  }, []);
+  }, [token, alExpirar]);
 
   // Ofertas según la búsqueda aplicada y la página actual.
   useEffect(() => {
@@ -66,8 +84,16 @@ export default function App() {
 
         const respuesta = await fetch(
           `${URL_API}/api/v1/ofertas?${parametros}`,
-          { signal: controller.signal }
+          {
+            signal: controller.signal,
+            headers: { Authorization: `Bearer ${token}` }
+          }
         );
+
+        if (respuesta.status === 401) {
+          return alExpirar();
+        }
+
         const datos = await respuesta.json().catch(() => null);
 
         if (!respuesta.ok) {
@@ -99,7 +125,7 @@ export default function App() {
     cargarOfertas();
 
     return () => controller.abort();
-  }, [consulta]);
+  }, [consulta, token, alExpirar]);
 
   function cambiarConsulta(nueva) {
     setCargando(true);
@@ -149,37 +175,6 @@ export default function App() {
 
   return (
     <>
-      <div className="barra-superior">
-        <div className="barra-superior__interior">
-          <span>Universidad Nacional de San Cristóbal de Huamanga</span>
-          <a href={SITIO_UNSCH} target="_blank" rel="noopener noreferrer">
-            Sitio institucional
-          </a>
-        </div>
-      </div>
-
-      <header className="cabecera">
-        <div className="cabecera__interior">
-          <a
-            className="enlace-logo"
-            href={SITIO_UNSCH}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <img
-              className="logo-unsch"
-              src="/logo-unsch.png"
-              alt="Universidad Nacional de San Cristóbal de Huamanga"
-            />
-          </a>
-
-          <nav className="navegacion" aria-label="Principal">
-            <a href="#inicio" aria-current="page">Inicio</a>
-            <a href="#ofertas">Ofertas</a>
-          </nav>
-        </div>
-      </header>
-
       <section className="hero" id="inicio">
         <div className="hero__interior">
           <p className="hero__etiqueta">Portal de oportunidades</p>
@@ -370,6 +365,102 @@ export default function App() {
         </section>
       </main>
 
+    </>
+  );
+}
+
+// Rutas de acceso con el hash de la URL. Cualquier otro valor lleva al inicio
+// de sesión (sin sesión) o al portal (con sesión), así que #ofertas sigue
+// llevando a la lista.
+const RUTAS_ACCESO = {
+  "#/registro/institucional": PaginaRegistroInstitucional,
+  "#/registro/empresa": PaginaRegistroEmpresa
+};
+
+function useHash() {
+  const [hash, setHash] = useState(window.location.hash);
+
+  useEffect(() => {
+    const alCambiar = () => setHash(window.location.hash);
+
+    window.addEventListener("hashchange", alCambiar);
+
+    return () => window.removeEventListener("hashchange", alCambiar);
+  }, []);
+
+  return hash;
+}
+
+function iniciales(nombre) {
+  return nombre
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((palabra) => palabra[0].toUpperCase())
+    .join("");
+}
+
+function Portal({ sesion, hash }) {
+  // Al abrir #ofertas (o volver al inicio), baja a la sección pedida.
+  useEffect(() => {
+    const id = hash.replace(/^#\/?/, "");
+    document.getElementById(id)?.scrollIntoView();
+  }, [hash]);
+
+  const { usuario } = sesion;
+
+  return (
+    <>
+      <div className="barra-superior">
+        <div className="barra-superior__interior">
+          <span>Universidad Nacional de San Cristóbal de Huamanga</span>
+          <a href={SITIO_UNSCH} target="_blank" rel="noopener noreferrer">
+            Sitio institucional
+          </a>
+        </div>
+      </div>
+
+      <header className="cabecera">
+        <div className="cabecera__interior">
+          <a
+            className="enlace-logo"
+            href={SITIO_UNSCH}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <img
+              className="logo-unsch"
+              src="/logo-unsch.png"
+              alt="Universidad Nacional de San Cristóbal de Huamanga"
+            />
+          </a>
+
+          <nav className="navegacion" aria-label="Principal">
+            <a href="#/" aria-current="page">Inicio</a>
+            <a href="#ofertas">Ofertas</a>
+
+            <div className="usuario">
+              <div className="usuario__datos">
+                <span className="usuario__nombre">{usuario.nombre}</span>
+                <span className="usuario__rol">{ETIQUETA_ROL[usuario.rol]}</span>
+              </div>
+              <span className="usuario__avatar" aria-hidden="true">
+                {iniciales(usuario.nombre)}
+              </span>
+              <button
+                type="button"
+                className="boton-secundario"
+                onClick={sesion.cerrarSesion}
+              >
+                Salir
+              </button>
+            </div>
+          </nav>
+        </div>
+      </header>
+
+      <Inicio token={sesion.token} alExpirar={sesion.cerrarSesion} />
+
       <footer className="pie">
         <div className="pie__interior">
           <img
@@ -387,4 +478,30 @@ export default function App() {
       </footer>
     </>
   );
+}
+
+export default function App() {
+  const sesion = useSesion();
+  const hash = useHash();
+  const conSesion = Boolean(sesion.usuario);
+  const esRutaAcceso = hash === "#/ingresar" || hash in RUTAS_ACCESO;
+
+  // Con la sesión iniciada no tiene sentido ver las pantallas de acceso.
+  useEffect(() => {
+    if (conSesion && esRutaAcceso) {
+      window.location.hash = "#/";
+    }
+  }, [conSesion, esRutaAcceso]);
+
+  if (sesion.restaurando) {
+    return <p className="cargando-sesion" role="status">Cargando…</p>;
+  }
+
+  if (!conSesion) {
+    const Pagina = RUTAS_ACCESO[hash] ?? PaginaIngresar;
+
+    return <Pagina sesion={sesion} />;
+  }
+
+  return <Portal sesion={sesion} hash={hash} />;
 }
