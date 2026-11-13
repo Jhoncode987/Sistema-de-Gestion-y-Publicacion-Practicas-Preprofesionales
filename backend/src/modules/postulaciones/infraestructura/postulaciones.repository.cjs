@@ -74,12 +74,38 @@ function crearPostulacionesRepository(pool) {
 
     // Acepta sin sobrepasar las vacantes: el candado por oferta serializa las
     // aceptaciones simultáneas y el conteo se hace ya dentro del candado.
-    async aceptar({ id, ofertaId, vacantes }) {
+    async tieneAceptada(estudianteId) {
+      const { rows } = await pool.query(
+        `SELECT 1 FROM postulaciones.postulaciones
+          WHERE estudiante_id = $1 AND estado = 'aceptada' LIMIT 1`,
+        [estudianteId]
+      );
+
+      return rows.length > 0;
+    },
+
+    // Un estudiante solo puede tener una práctica aceptada: además del candado
+    // de la oferta se toma uno por estudiante (clave negativa, no choca con las
+    // ofertas) y, al aceptar, se retiran sus demás postulaciones pendientes.
+    async aceptar({ id, ofertaId, estudianteId, vacantes }) {
       const cliente = await pool.connect();
 
       try {
         await cliente.query("BEGIN");
         await cliente.query("SELECT pg_advisory_xact_lock($1::bigint)", [ofertaId]);
+
+        await cliente.query("SELECT pg_advisory_xact_lock(-($1::bigint))", [estudianteId]);
+
+        const yaAceptado = await cliente.query(
+          `SELECT 1 FROM postulaciones.postulaciones
+            WHERE estudiante_id = $1 AND estado = 'aceptada' LIMIT 1`,
+          [estudianteId]
+        );
+
+        if (yaAceptado.rows.length > 0) {
+          await cliente.query("ROLLBACK");
+          return { resultado: "YA_ACEPTADO" };
+        }
 
         const conteo = await cliente.query(
           `SELECT count(*)::int AS n FROM postulaciones.postulaciones
@@ -105,10 +131,19 @@ function crearPostulacionesRepository(pool) {
           return { resultado: "TRANSICION" };
         }
 
+        const retiradas = await cliente.query(
+          `UPDATE postulaciones.postulaciones
+              SET estado = 'retirada', motivo = 'Aceptado en otra práctica', decidida_en = now()
+            WHERE estudiante_id = $1 AND estado = 'pendiente' AND id <> $2
+            RETURNING 1`,
+          [estudianteId, id]
+        );
+
         await cliente.query("COMMIT");
 
         return {
           resultado: "ACEPTADA",
+          retiradas: retiradas.rows.length,
           postulacion: rows[0],
           aceptadas: Number(conteo.rows[0].n) + 1
         };

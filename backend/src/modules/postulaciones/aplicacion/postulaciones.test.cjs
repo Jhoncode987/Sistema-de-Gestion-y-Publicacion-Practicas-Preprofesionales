@@ -54,13 +54,17 @@ function montar({ perfiles = {}, oferta = OFERTA } = {}) {
       if (f) { f.estado = "rechazada"; f.motivo = motivo; }
       return f ? { ...f } : null;
     },
-    async aceptar({ id, ofertaId, vacantes }) {
+    async tieneAceptada(estudianteId) { return filas.some((f) => f.estudianteId === estudianteId && f.estado === "aceptada"); },
+    async aceptar({ id, ofertaId, estudianteId, vacantes }) {
+      if (filas.some((f) => f.estudianteId === estudianteId && f.estado === "aceptada")) return { resultado: "YA_ACEPTADO" };
       const n = filas.filter((f) => f.ofertaId === ofertaId && f.estado === "aceptada").length;
       if (n >= vacantes) return { resultado: "SIN_CUPO" };
       const f = filas.find((x) => x.id === id && x.estado === "pendiente");
       if (!f) return { resultado: "TRANSICION" };
       f.estado = "aceptada";
-      return { resultado: "ACEPTADA", postulacion: { ...f }, aceptadas: n + 1 };
+      const otras = filas.filter((x) => x.estudianteId === estudianteId && x.estado === "pendiente" && x.id !== id);
+      otras.forEach((x) => { x.estado = "retirada"; x.motivo = "Aceptado en otra práctica"; });
+      return { resultado: "ACEPTADA", postulacion: { ...f }, aceptadas: n + 1, retiradas: otras.length };
     },
     async rechazarPendientesDeOferta(ofertaId, motivo) {
       filas.filter((f) => f.ofertaId === ofertaId && f.estado === "pendiente")
@@ -213,4 +217,25 @@ test("sin cupo no se acepta; con oferta cerrada tampoco", async () => {
   const { postular: p2, decidir: d2 } = montar({ oferta: { ...OFERTA, estado: "cerrada" } });
   const x = await p2("1", { ofertaId: "10" });
   await falla(d2.aceptar("9", x.id), ReglaDeNegocioError, "OFERTA_NO_VIGENTE");
+});
+
+test("un estudiante aceptado ya no puede postular ni ser aceptado en otra oferta", async () => {
+  const { dep, postular, decidir, filas } = montar();
+  const a = await postular("1", { ofertaId: "10" });
+  await decidir.aceptar("9", a.id);
+  await falla(postular("1", { ofertaId: "10" }), ReglaDeNegocioError, "YA_TIENE_PRACTICA");
+
+  // Postulación pendiente "en otra oferta" creada antes: se retira al aceptar.
+  const montado = montar();
+  const x = await montado.postular("1", { ofertaId: "10" });
+  montado.filas.push({ id: "99", ofertaId: "11", estudianteId: "1", estado: "pendiente", motivo: null });
+  const r = await montado.decidir.aceptar("9", x.id);
+  assert.equal(r.postulacionesRetiradas, 1);
+  assert.equal(montado.filas.find((f) => f.id === "99").estado, "retirada");
+  assert.match(montado.filas.find((f) => f.id === "99").motivo, /otra práctica/);
+
+  // Segunda aceptación del mismo estudiante en otra oferta.
+  montado.filas.push({ id: "100", ofertaId: "10", estudianteId: "1", estado: "pendiente", motivo: null });
+  await falla(montado.decidir.aceptar("9", "100"), ReglaDeNegocioError, "ESTUDIANTE_YA_ACEPTADO");
+  assert.ok(filas);
 });

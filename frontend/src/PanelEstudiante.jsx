@@ -174,6 +174,9 @@ function MisPostulaciones({ token, items, error, alCambiar }) {
                 {p.estado === "rechazada" && p.motivo && (
                   <p className="aviso error">Motivo: {p.motivo}</p>
                 )}
+                {p.estado === "retirada" && p.motivo && (
+                  <p className="aviso aviso--info">{p.motivo}</p>
+                )}
                 {p.estado === "aceptada" && (
                   <p className="aviso aviso--exito">¡Fuiste aceptado! La empresa se comunicará contigo.</p>
                 )}

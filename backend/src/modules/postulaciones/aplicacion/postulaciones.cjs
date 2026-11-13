@@ -43,6 +43,13 @@ function crearPostular({ postulacionesRepository, obtenerPerfilUsuario, ofertas 
       );
     }
 
+    if (await postulacionesRepository.tieneAceptada(perfil.id)) {
+      throw new ReglaDeNegocioError(
+        "YA_TIENE_PRACTICA",
+        "Ya fuiste aceptado en una práctica, no puedes postular a otras"
+      );
+    }
+
     const oferta = await ofertas.obtenerOfertaParaPostular(ofertaId);
 
     if (!oferta) {
@@ -184,8 +191,16 @@ function crearDecidirPostulacion({ postulacionesRepository, obtenerPerfilUsuario
       const resultado = await postulacionesRepository.aceptar({
         id: postulacion.id,
         ofertaId: postulacion.ofertaId,
+        estudianteId: postulacion.estudianteId,
         vacantes: oferta.vacantes
       });
+
+      if (resultado.resultado === "YA_ACEPTADO") {
+        throw new ReglaDeNegocioError(
+          "ESTUDIANTE_YA_ACEPTADO",
+          "Este estudiante ya fue aceptado en otra práctica"
+        );
+      }
 
       if (resultado.resultado === "SIN_CUPO") {
         throw new ReglaDeNegocioError("SIN_CUPO", "Ya no quedan vacantes en esta oferta");
@@ -204,7 +219,12 @@ function crearDecidirPostulacion({ postulacionesRepository, obtenerPerfilUsuario
         ofertaCerrada = Boolean(await ofertas.cerrarPorCupoLleno(postulacion.ofertaId));
       }
 
-      return { postulacion: resultado.postulacion, aceptadas: resultado.aceptadas, ofertaCerrada };
+      return {
+        postulacion: resultado.postulacion,
+        aceptadas: resultado.aceptadas,
+        ofertaCerrada,
+        postulacionesRetiradas: resultado.retiradas
+      };
     },
 
     async rechazar(usuarioId, id, entrada) {
