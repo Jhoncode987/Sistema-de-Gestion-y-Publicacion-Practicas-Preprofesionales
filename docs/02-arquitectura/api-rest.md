@@ -59,6 +59,9 @@ El backend usa Node.js con Express 5 (ADR-006). Estado de implementación:
 | GET /api/v1/auth/yo | Implementada | Con `Authorization: Bearer <token>` devuelve `{ usuario }`; 401 `NO_AUTENTICADO` si falta o venció. |
 | POST /api/v1/ofertas | Implementada | Solo rol empresa. Recibe `titulo`, `descripcion`, `carrera`, `ciclo_minimo` (1 a 10), `creditos_minimos`, `modalidad`, `vacantes` (1 a 100) y `fecha_limite` (AAAA-MM-DD, posterior a hoy y máximo 365 días). Responde 201 con la oferta en estado `pendiente_revision`; la empresa se toma de la cuenta, nunca del cuerpo. Errores: 400 `DATOS_INVALIDOS`, 403 `ACCESO_DENEGADO`, 409 `RUC_EN_USO`. |
 | GET /api/v1/ofertas/mias | Implementada | Solo rol empresa. Devuelve `{ empresa: { razonSocial, ruc, estado }, items }` con todas sus ofertas, en cualquier estado. |
+| GET /api/v1/coordinacion/pendientes | Implementada | Solo rol coordinador. Devuelve `{ empresas, ofertas }` con las empresas en `pendiente` y las ofertas en `pendiente_revision`. |
+| POST /api/v1/coordinacion/empresas/{id}/aprobar y /rechazar | Implementada | Solo coordinador. Rechazar exige `{ motivo }` (5 a 500 caracteres). Solo cambia empresas `pendiente`; guarda quién decidió y cuándo. Errores: 404 `NO_ENCONTRADO`, 409 `TRANSICION_INVALIDA`. |
+| POST /api/v1/coordinacion/ofertas/{id}/aprobar y /rechazar | Implementada | Solo coordinador. Publicar exige empresa aprobada y fecha límite vigente (409 `EMPRESA_NO_APROBADA` u `OFERTA_VENCIDA`); rechazar siempre es posible. La decisión es atómica: si dos coordinadores deciden a la vez, uno recibe 409 `TRANSICION_INVALIDA`. |
 | Resto de rutas de la tabla | Pendientes | |
 
 **Diferencias actuales con el contrato propuesto** (por alinear cuando se amplíe el módulo):

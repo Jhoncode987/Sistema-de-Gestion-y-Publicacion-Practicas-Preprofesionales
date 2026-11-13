@@ -39,6 +39,7 @@ La decisión está registrada en el [ADR-006](docs/02-arquitectura/decisiones-ar
    psql -d nombre_de_la_base -f backend/migrations/002_indices_ofertas.sql
    psql -d nombre_de_la_base -f backend/migrations/003_crear_usuarios.sql
    psql -d nombre_de_la_base -f backend/migrations/004_vincular_empresa_con_usuario.sql
+   psql -d nombre_de_la_base -f backend/migrations/005_revision_del_coordinador.sql
    psql -d nombre_de_la_base -f backend/database/001_datos_prueba.sql
    psql -d nombre_de_la_base -f backend/database/002_datos_prueba_ofertas.sql   # opcional: ~23 ofertas para probar filtros y paginación
    ```
@@ -70,4 +71,4 @@ La decisión está registrada en el [ADR-006](docs/02-arquitectura/decisiones-ar
    Abre `http://localhost:5173`. Vite redirige `/api` al backend.
 
 ## Estado
-Los documentos describen una propuesta arquitectónica. Los diagramas de arquitectura inicial y estilo se conservan con los siete módulos explicados. Se priorizan tres atributos (rendimiento, seguridad y mantenibilidad) y pruebas con 20 y 25 usuarios simultáneos. Hay una primera implementación ejecutable: el listado de ofertas con filtros y paginación, el registro e inicio de sesión con roles y el panel de empresa para publicar ofertas (backend en Express y portal en React, sobre PostgreSQL). Las demás funciones, las pruebas automatizadas y los resultados de prueba siguen pendientes.
+Los documentos describen una propuesta arquitectónica. Los diagramas de arquitectura inicial y estilo se conservan con los siete módulos explicados. Se priorizan tres atributos (rendimiento, seguridad y mantenibilidad) y pruebas con 20 y 25 usuarios simultáneos. Hay una primera implementación ejecutable: el listado de ofertas con filtros y paginación, el registro e inicio de sesión con roles y el panel de empresa para publicar ofertas y el panel del coordinador para validarlas (backend en Express y portal en React, sobre PostgreSQL). Las demás funciones, las pruebas automatizadas y los resultados de prueba siguen pendientes.

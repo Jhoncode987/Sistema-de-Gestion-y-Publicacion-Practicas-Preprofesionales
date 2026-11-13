@@ -148,6 +148,13 @@ export default function PanelEmpresa({ token, alExpirar }) {
       </section>
 
       <main className="contenedor">
+        {empresa?.estado === "aprobada" && (
+          <p className="aviso aviso--exito" role="status">
+            Tu empresa fue aprobada. Tus ofertas aprobadas se muestran a los
+            estudiantes.
+          </p>
+        )}
+
         {empresa?.estado === "pendiente" && (
           <p className="aviso aviso--info" role="status">
             Tu empresa está pendiente de validación por la coordinación. Puedes
@@ -158,8 +165,9 @@ export default function PanelEmpresa({ token, alExpirar }) {
 
         {empresa?.estado === "rechazada" && (
           <p className="aviso error" role="alert">
-            La coordinación rechazó el registro de tu empresa. Comunícate con la
-            coordinación de prácticas.
+            La coordinación rechazó el registro de tu empresa
+            {empresa.motivoRechazo ? `: ${empresa.motivoRechazo}` : "."} Comunícate
+            con la coordinación de prácticas.
           </p>
         )}
 
@@ -333,6 +341,13 @@ export default function PanelEmpresa({ token, alExpirar }) {
                     </span>
 
                     <h3>{oferta.titulo}</h3>
+
+                    {oferta.estado === "rechazada" && oferta.motivoRechazo && (
+                      <p className="aviso error">
+                        Motivo del rechazo: {oferta.motivoRechazo}
+                      </p>
+                    )}
+
                     <p>{oferta.descripcion}</p>
 
                     <dl className="detalles">

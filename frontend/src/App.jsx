@@ -4,6 +4,7 @@ import {
   PaginaRegistroEmpresa,
   PaginaRegistroInstitucional
 } from "./Acceso.jsx";
+import PanelCoordinador from "./PanelCoordinador.jsx";
 import PanelEmpresa from "./PanelEmpresa.jsx";
 import { CICLOS, MODALIDADES, formatearFecha } from "./formato.js";
 import { useSesion } from "./sesion.js";
@@ -391,6 +392,7 @@ function Portal({ sesion, hash }) {
 
   const { usuario } = sesion;
   const esEmpresa = usuario.rol === "empresa";
+  const esCoordinador = usuario.rol === "coordinador";
 
   return (
     <>
@@ -425,6 +427,11 @@ function Portal({ sesion, hash }) {
                 <a href="#publicar">Publicar</a>
                 <a href="#mis-ofertas">Mis ofertas</a>
               </>
+            ) : esCoordinador ? (
+              <>
+                <a href="#empresas">Empresas</a>
+                <a href="#ofertas-revision">Ofertas</a>
+              </>
             ) : (
               <a href="#ofertas">Ofertas</a>
             )}
@@ -451,6 +458,8 @@ function Portal({ sesion, hash }) {
 
       {esEmpresa ? (
         <PanelEmpresa token={sesion.token} alExpirar={sesion.cerrarSesion} />
+      ) : esCoordinador ? (
+        <PanelCoordinador token={sesion.token} alExpirar={sesion.cerrarSesion} />
       ) : (
         <Inicio token={sesion.token} alExpirar={sesion.cerrarSesion} />
       )}

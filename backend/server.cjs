@@ -23,6 +23,16 @@ const {
 } = require("./src/modules/ofertas/aplicacion/publicar-oferta.cjs");
 
 const {
+  crearListarPendientes,
+  crearDecidirEmpresa,
+  crearDecidirOferta
+} = require("./src/modules/ofertas/aplicacion/revision.cjs");
+
+const {
+  crearCoordinacionRouter
+} = require("./src/modules/ofertas/presentacion/coordinacion.routes.cjs");
+
+const {
   crearOfertasRouter
 } = require("./src/modules/ofertas/presentacion/ofertas.routes.cjs");
 
@@ -137,6 +147,20 @@ app.use(
     listarFiltros,
     publicarOferta: crearPublicarOferta({ ofertasRepository, obtenerPerfilUsuario }),
     listarMisOfertas: crearListarMisOfertas({ ofertasRepository, obtenerPerfilUsuario })
+  })
+);
+
+// Revisión del coordinador (RF01): rol comprobado en la ruta y otra vez en cada caso de uso.
+const revision = { ofertasRepository, obtenerPerfilUsuario };
+
+app.use(
+  "/api/v1/coordinacion",
+  autenticar,
+  requerirRol("coordinador"),
+  crearCoordinacionRouter({
+    listarPendientes: crearListarPendientes(revision),
+    decidirEmpresa: crearDecidirEmpresa(revision),
+    decidirOferta: crearDecidirOferta(revision)
   })
 );
 

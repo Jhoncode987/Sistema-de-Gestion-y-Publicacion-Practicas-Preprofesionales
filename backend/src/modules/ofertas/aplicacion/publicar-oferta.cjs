@@ -127,7 +127,8 @@ function crearListarMisOfertas({ ofertasRepository, obtenerPerfilUsuario }) {
       empresa: {
         razonSocial: empresa.razonSocial,
         ruc: empresa.ruc,
-        estado: empresa.estado
+        estado: empresa.estado,
+        motivoRechazo: empresa.motivoRechazo ?? null
       },
       items: await ofertasRepository.listarPorEmpresa(empresa.id)
     };

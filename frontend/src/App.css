@@ -853,3 +853,36 @@ button:disabled {
     grid-column: 1 / -1;
   }
 }
+
+/* Panel del coordinador */
+.decision {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--borde);
+}
+
+.decision__botones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.decision .campo textarea {
+  min-height: 80px;
+}
+
+.boton-peligro {
+  background: #8b1e1e;
+}
+
+.boton-peligro:hover {
+  background: #a02626;
+}
+
+.tarjeta .aviso {
+  margin: 12px 0;
+  padding: 12px 14px;
+  font-size: 14px;
+}

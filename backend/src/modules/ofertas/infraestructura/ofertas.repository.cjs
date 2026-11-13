@@ -5,7 +5,8 @@ const COLUMNAS_OFERTA = `
   o.ciclo_minimo, o.creditos_minimos, o.modalidad, o.vacantes,
   o.fecha_limite, o.estado`;
 
-const COLUMNAS_EMPRESA = 'id, ruc, razon_social AS "razonSocial", estado';
+const COLUMNAS_EMPRESA =
+  'id, ruc, razon_social AS "razonSocial", estado, motivo_rechazo AS "motivoRechazo"';
 
 // Escapa los caracteres comodín de LIKE para que el texto buscado sea literal.
 function escaparLike(texto) {
@@ -160,7 +161,7 @@ function crearOfertasRepository(pool) {
 
     async listarPorEmpresa(empresaId) {
       const { rows } = await pool.query(
-        `SELECT ${COLUMNAS_OFERTA}
+        `SELECT ${COLUMNAS_OFERTA}, o.motivo_rechazo AS "motivoRechazo"
            FROM ofertas.ofertas AS o
            JOIN ofertas.empresas AS e ON e.id = o.empresa_id
           WHERE o.empresa_id = $1
@@ -170,6 +171,98 @@ function crearOfertasRepository(pool) {
       );
 
       return rows;
+    },
+
+    // --- Revisión del coordinador ---
+
+    async listarEmpresasPorEstado(estado) {
+      const { rows } = await pool.query(
+        `SELECT e.id, e.ruc, e.razon_social AS "razonSocial", e.estado,
+                e.creada_en AS "creadaEn",
+                (SELECT COUNT(*)::int FROM ofertas.ofertas AS o
+                  WHERE o.empresa_id = e.id) AS "totalOfertas"
+           FROM ofertas.empresas AS e
+          WHERE e.estado = $1
+          ORDER BY e.id
+          LIMIT 200`,
+        [estado]
+      );
+
+      return rows;
+    },
+
+    async listarOfertasPorEstado(estado) {
+      const { rows } = await pool.query(
+        `SELECT ${COLUMNAS_OFERTA}, o.creada_en AS "creadaEn",
+                e.estado AS "empresaEstado"
+           FROM ofertas.ofertas AS o
+           JOIN ofertas.empresas AS e ON e.id = o.empresa_id
+          WHERE o.estado = $1
+          ORDER BY o.id
+          LIMIT 200`,
+        [estado]
+      );
+
+      return rows;
+    },
+
+    async obtenerEmpresa(id) {
+      const { rows } = await pool.query(
+        `SELECT ${COLUMNAS_EMPRESA} FROM ofertas.empresas WHERE id = $1`,
+        [id]
+      );
+
+      return rows[0] ?? null;
+    },
+
+    // Solo cambia si sigue pendiente: dos coordinadores no pisan la decisión del otro.
+    async decidirEmpresa({ id, estado, motivo, decididoPor }) {
+      const { rows } = await pool.query(
+        `UPDATE ofertas.empresas
+            SET estado = $2, motivo_rechazo = $3,
+                decidido_por = $4, decidido_en = now()
+          WHERE id = $1 AND estado = 'pendiente'
+          RETURNING ${COLUMNAS_EMPRESA}`,
+        [id, estado, motivo, decididoPor]
+      );
+
+      return rows[0] ?? null;
+    },
+
+    async obtenerOfertaParaRevision(id) {
+      const { rows } = await pool.query(
+        `SELECT o.id, o.estado, e.estado AS "empresaEstado"
+           FROM ofertas.ofertas AS o
+           JOIN ofertas.empresas AS e ON e.id = o.empresa_id
+          WHERE o.id = $1`,
+        [id]
+      );
+
+      return rows[0] ?? null;
+    },
+
+    // Publicar exige empresa aprobada y fecha límite vigente; rechazar siempre se puede.
+    async decidirOferta({ id, estado, motivo, decididoPor }) {
+      const { rows } = await pool.query(
+        `WITH actualizada AS (
+           UPDATE ofertas.ofertas AS o
+              SET estado = $2::text, motivo_rechazo = $3,
+                  decidido_por = $4, decidido_en = now()
+             FROM ofertas.empresas AS e
+            WHERE o.id = $1
+              AND e.id = o.empresa_id
+              AND o.estado = 'pendiente_revision'
+              AND ($2::text = 'rechazada'
+                   OR (e.estado = 'aprobada' AND o.fecha_limite >= CURRENT_DATE))
+           RETURNING o.*
+         )
+         SELECT ${COLUMNAS_OFERTA}, o.motivo_rechazo AS "motivoRechazo"
+           FROM actualizada AS o
+           JOIN ofertas.empresas AS e ON e.id = o.empresa_id`,
+        [id, estado, motivo, decididoPor]
+      );
+
+      return rows[0] ?? null;
     },
 
     async listarCarreras() {

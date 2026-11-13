@@ -156,7 +156,7 @@ test("lista las ofertas de la propia empresa con su estado de validación", asyn
   const listar = crearListarMisOfertas({ ofertasRepository: repo, obtenerPerfilUsuario });
   const r = await listar("7");
 
-  assert.deepEqual(r.empresa, { razonSocial: "Empresa Real S.A.C.", ruc: "20123456789", estado: "pendiente" });
+  assert.deepEqual(r.empresa, { razonSocial: "Empresa Real S.A.C.", ruc: "20123456789", estado: "pendiente", motivoRechazo: null });
   assert.equal(r.items[0].empresa_id, "10");
 
   const otro = entorno({ perfil: { id: "1", rol: "estudiante" } });
