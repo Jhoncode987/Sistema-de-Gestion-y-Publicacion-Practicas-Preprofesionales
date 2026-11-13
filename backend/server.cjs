@@ -30,6 +30,17 @@ const {
   crearCerrarOferta
 } = require("./src/modules/ofertas/aplicacion/revision.cjs");
 
+const { crearContratosParaPostulaciones } = require("./src/modules/ofertas/aplicacion/contratos-postulaciones.cjs");
+const { crearPostulacionesRepository } = require("./src/modules/postulaciones/infraestructura/postulaciones.repository.cjs");
+const {
+  crearPostular,
+  crearListarMisPostulaciones,
+  crearRetirarPostulacion,
+  crearListarPostulantes,
+  crearDecidirPostulacion
+} = require("./src/modules/postulaciones/aplicacion/postulaciones.cjs");
+const { crearPostulacionesRouter } = require("./src/modules/postulaciones/presentacion/postulaciones.routes.cjs");
+
 const {
   crearCoordinacionRouter
 } = require("./src/modules/ofertas/presentacion/coordinacion.routes.cjs");
@@ -43,7 +54,8 @@ const { crearServicioTokens } = require("./src/modules/identidad/aplicacion/toke
 const { crearLimitadorIntentos } = require("./src/modules/identidad/aplicacion/limitador-intentos.cjs");
 const { crearRegistrarUsuario } = require("./src/modules/identidad/aplicacion/registrar-usuario.cjs");
 const { crearIniciarSesion } = require("./src/modules/identidad/aplicacion/iniciar-sesion.cjs");
-const { crearObtenerPerfil } = require("./src/modules/identidad/aplicacion/obtener-perfil.cjs");
+const { crearActualizarPerfilAcademico } = require("./src/modules/identidad/aplicacion/actualizar-perfil-academico.cjs");
+const { crearObtenerPerfil, crearObtenerPerfiles } = require("./src/modules/identidad/aplicacion/obtener-perfil.cjs");
 const { crearAutenticar, requerirRol } = require("./src/modules/identidad/presentacion/autenticacion.middleware.cjs");
 const { crearAuthRouter } = require("./src/modules/identidad/presentacion/auth.routes.cjs");
 
@@ -75,7 +87,7 @@ if (ORIGEN_PERMITIDO) {
   app.use((req, res, next) => {
     res.set("Access-Control-Allow-Origin", ORIGEN_PERMITIDO);
     res.set("Vary", "Origin");
-    res.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.set("Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS");
     res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
     if (req.method === "OPTIONS") {
@@ -131,7 +143,8 @@ app.use(
     autenticar,
     registrarUsuario: crearRegistrarUsuario({ usuariosRepository, tokens }),
     iniciarSesion: crearIniciarSesion({ usuariosRepository, tokens, limitador }),
-    obtenerPerfil
+    obtenerPerfil,
+    actualizarPerfilAcademico: crearActualizarPerfilAcademico({ usuariosRepository })
   })
 );
 
@@ -165,6 +178,31 @@ app.use(
     decidirEmpresa: crearDecidirEmpresa(revision),
     decidirOferta: crearDecidirOferta(revision),
     cerrarOferta: crearCerrarOferta(revision)
+  })
+);
+
+// Postulaciones: habla con Identidad (perfil) y con Ofertas (contratos), nunca con sus tablas.
+const obtenerPerfiles = crearObtenerPerfiles({ usuariosRepository });
+const contratosOfertas = crearContratosParaPostulaciones({ ofertasRepository });
+const postulacionesRepository = crearPostulacionesRepository(pool);
+const dependenciasPostulaciones = {
+  postulacionesRepository,
+  obtenerPerfilUsuario,
+  obtenerPerfiles,
+  ofertas: contratosOfertas
+};
+
+app.use(
+  "/api/v1/postulaciones",
+  autenticar,
+  crearPostulacionesRouter({
+    soloEstudiante: requerirRol("estudiante"),
+    soloEmpresa: requerirRol("empresa"),
+    postular: crearPostular(dependenciasPostulaciones),
+    listarMisPostulaciones: crearListarMisPostulaciones(dependenciasPostulaciones),
+    retirarPostulacion: crearRetirarPostulacion(dependenciasPostulaciones),
+    listarPostulantes: crearListarPostulantes(dependenciasPostulaciones),
+    decidirPostulacion: crearDecidirPostulacion(dependenciasPostulaciones)
   })
 );
 

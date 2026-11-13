@@ -36,6 +36,9 @@ function repositorioEnMemoria() {
         rol: d.rol,
         nombre: d.nombre,
         codigoEstudiante: d.codigoEstudiante ?? null,
+        carrera: d.carrera ?? null,
+        ciclo: d.ciclo ?? null,
+        creditosAprobados: d.creditosAprobados ?? null,
         ruc: d.ruc ?? null,
         razonSocial: d.razonSocial ?? null,
         activo: true,
@@ -60,7 +63,10 @@ const estudiante = {
   correo: "  Ana@Unsch.edu.pe ",
   clave: "clave-segura-1",
   nombre: "Ana  Quispe",
-  codigoEstudiante: "20180123"
+  codigoEstudiante: "20180123",
+  carrera: "Ingeniería de Sistemas",
+  ciclo: "8",
+  creditosAprobados: 150
 };
 
 test("hashea la clave sin guardarla en claro y la verifica", async () => {
@@ -152,6 +158,14 @@ test("no permite registrarse como coordinador ni datos inválidos", () => {
     { ...base, nombre: "A" },
     { ...base, codigoEstudiante: "12ab" },
     { ...base, codigoEstudiante: undefined },
+    { ...base, carrera: "" },
+    { ...base, carrera: undefined },
+    { ...base, ciclo: 0 },
+    { ...base, ciclo: 11 },
+    { ...base, ciclo: "x" },
+    { ...base, creditosAprobados: -1 },
+    { ...base, creditosAprobados: 251 },
+    { ...base, creditosAprobados: undefined },
     { rol: "empresa", correo: "a@b.pe", clave: "clave-segura-1", nombre: "Ok", ruc: "123", razonSocial: "X Y" },
     { rol: "empresa", correo: "a@b.pe", clave: "clave-segura-1", nombre: "Ok", ruc: "20123456789" }
   ];
@@ -296,4 +310,47 @@ test("crea coordinador solo con la función administrativa", async () => {
   assert.equal(usuario.rol, "coordinador");
   assert.equal(usuario.correo, "coord@unsch.edu.pe");
   await assert.rejects(crear({ correo: "x@y.pe", clave: "corta", nombre: "Ok" }), DatosInvalidosError);
+});
+
+const { validarPerfilAcademico } = require("./registrar-usuario.cjs");
+const { crearActualizarPerfilAcademico } = require("./actualizar-perfil-academico.cjs");
+const { AccesoDenegadoError } = require("./errores.cjs");
+
+test("el registro del estudiante guarda su perfil académico normalizado", async () => {
+  const repo = repositorioEnMemoria();
+  const registrar = crearRegistrarUsuario({ usuariosRepository: repo, tokens: crearServicioTokens({ secreto: SECRETO }) });
+  const { usuario } = await registrar({ ...estudiante, carrera: "  Ingeniería   de Sistemas ", ciclo: "8" });
+
+  assert.equal(usuario.carrera, "Ingeniería de Sistemas");
+  assert.equal(usuario.ciclo, 8);
+  assert.equal(usuario.creditosAprobados, 150);
+});
+
+test("las empresas no llevan perfil académico", () => {
+  const d = validarRegistro({
+    rol: "empresa", correo: "a@b.pe", clave: "clave-segura-1", nombre: "Ok Ok",
+    ruc: "20123456789", razonSocial: "Empresa Real", carrera: "Derecho", ciclo: 5
+  });
+  assert.equal("carrera" in d, false);
+  assert.equal("ciclo" in d, false);
+});
+
+test("validarPerfilAcademico acepta límites y rechaza fuera de rango", () => {
+  assert.deepEqual(validarPerfilAcademico({ carrera: "Derecho", ciclo: 1, creditosAprobados: 0 }), { carrera: "Derecho", ciclo: 1, creditosAprobados: 0 });
+  assert.equal(validarPerfilAcademico({ carrera: "Derecho", ciclo: "10", creditosAprobados: "250" }).ciclo, 10);
+  for (const m of [null, {}, { carrera: "Derecho", ciclo: 11, creditosAprobados: 0 }, { carrera: "Derecho", ciclo: 5, creditosAprobados: 1.5 }]) {
+    assert.throws(() => validarPerfilAcademico(m), DatosInvalidosError);
+  }
+});
+
+test("actualizar el perfil académico: solo estudiantes", async () => {
+  const llamadas = [];
+  const repo = { async actualizarPerfilAcademico(id, d) { llamadas.push([id, d]); return id === "1" ? { id, rol: "estudiante", ...d } : null; } };
+  const actualizar = crearActualizarPerfilAcademico({ usuariosRepository: repo });
+
+  const u = await actualizar("1", { carrera: "Derecho", ciclo: 6, creditosAprobados: 90 });
+  assert.equal(u.ciclo, 6);
+  await assert.rejects(actualizar("2", { carrera: "Derecho", ciclo: 6, creditosAprobados: 90 }), AccesoDenegadoError);
+  await assert.rejects(actualizar("1", { carrera: "D", ciclo: 6, creditosAprobados: 90 }), DatosInvalidosError);
+  assert.equal(llamadas.length, 2);
 });

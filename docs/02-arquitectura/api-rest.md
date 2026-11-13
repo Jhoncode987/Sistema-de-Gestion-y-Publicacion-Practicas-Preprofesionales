@@ -64,6 +64,12 @@ El backend usa Node.js con Express 5 (ADR-006). Estado de implementación:
 | POST /api/v1/coordinacion/ofertas/{id}/aprobar y /rechazar | Implementada | Solo coordinador. Publicar exige empresa aprobada y fecha límite vigente (409 `EMPRESA_NO_APROBADA` u `OFERTA_VENCIDA`); rechazar siempre es posible. La decisión es atómica: si dos coordinadores deciden a la vez, uno recibe 409 `TRANSICION_INVALIDA`. |
 | POST /api/v1/ofertas/{id}/cerrar | Implementada | Solo rol empresa. Cierra una oferta propia en `pendiente_revision` o `publicada`; una oferta ajena responde 404 igual que una inexistente. Errores: 404 `NO_ENCONTRADO`, 409 `TRANSICION_INVALIDA`. |
 | POST /api/v1/coordinacion/ofertas/{id}/cerrar | Implementada | Solo coordinador. Retira una oferta `publicada` con `{ motivo }` obligatorio, que la empresa ve. Las ofertas nunca se borran: pasan a `cerrada` y conservan su historial. |
+| PUT /api/v1/auth/perfil-academico | Implementada | Solo estudiante. Guarda `carrera`, `ciclo` (1–10) y `creditosAprobados` (0–250), declarados hasta integrar SIGA. El registro del estudiante también los pide. |
+| POST /api/v1/postulaciones | Implementada | Solo estudiante. Cuerpo `{ ofertaId }`. 409: `PERFIL_INCOMPLETO`, `OFERTA_NO_VIGENTE`, `NO_ELEGIBLE` (con `motivos`), `POSTULACION_DUPLICADA`. |
+| GET /api/v1/postulaciones/mias | Implementada | Solo estudiante. Sus postulaciones con el detalle de cada oferta. |
+| POST /api/v1/postulaciones/{id}/retirar | Implementada | Solo estudiante, solo si está `pendiente`. |
+| GET /api/v1/postulaciones/oferta/{ofertaId} | Implementada | Solo la empresa dueña de la oferta: postulantes con su perfil académico. Una oferta ajena responde 404. |
+| POST /api/v1/postulaciones/{id}/aceptar y /rechazar | Implementada | Solo la empresa dueña. Aceptar controla las vacantes con candado (409 `SIN_CUPO`); al cubrirlas, la oferta se cierra y las pendientes se rechazan. Rechazar admite `{ motivo }` opcional. |
 | Resto de rutas de la tabla | Pendientes | |
 
 **Diferencias actuales con el contrato propuesto** (por alinear cuando se amplíe el módulo):

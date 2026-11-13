@@ -886,3 +886,87 @@ button:disabled {
   padding: 12px 14px;
   font-size: 14px;
 }
+
+/* Postulaciones */
+.perfil-academico {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 20px 0 0;
+  padding: 14px 18px;
+  border: 1px solid #e3c56f;
+  border-left: 5px solid var(--dorado);
+  border-radius: 8px;
+  background: #fffaf0;
+}
+
+.perfil-academico p {
+  margin: 0;
+}
+
+.perfil-academico--formulario {
+  display: block;
+}
+
+.acciones-postulacion {
+  margin-top: 14px;
+}
+
+.acciones-postulacion button:disabled {
+  background: #b9b0b0;
+  cursor: not-allowed;
+}
+
+.acciones-postulacion .aviso ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+
+.tarjeta > .aviso--exito,
+.tarjeta > .aviso--info {
+  margin-bottom: 0;
+}
+
+.tarjeta > button {
+  margin-top: 14px;
+}
+
+.postulantes {
+  margin-top: 14px;
+}
+
+.postulantes__lista {
+  margin-top: 12px;
+}
+
+.postulante {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid #e5dede;
+}
+
+.postulante__datos {
+  margin: 4px 0 0;
+  color: #555;
+  font-size: 14px;
+}
+
+.postulante__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.postulante__acciones input {
+  padding: 9px 10px;
+  border: 1px solid #c9bebe;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 14px;
+}

@@ -185,6 +185,9 @@ export function PaginaRegistroInstitucional({ sesion }) {
   const [datos, setDatos] = useState({
     nombre: "",
     codigoEstudiante: "",
+    carrera: "",
+    ciclo: "1",
+    creditosAprobados: "0",
     correo: "",
     clave: ""
   });
@@ -229,6 +232,38 @@ export function PaginaRegistroInstitucional({ sesion }) {
           inputMode="numeric"
           pattern="\d{6,10}"
           title="Entre 6 y 10 dígitos"
+        />
+        <Campo
+          etiqueta="Carrera profesional"
+          name="carrera"
+          value={datos.carrera}
+          onChange={cambiar}
+          required
+          minLength={3}
+          maxLength={150}
+          placeholder="Ingeniería de Sistemas"
+          ayuda="Escríbela como aparece en las ofertas."
+        />
+        <Campo
+          etiqueta="Ciclo actual (1 a 10)"
+          type="number"
+          name="ciclo"
+          value={datos.ciclo}
+          onChange={cambiar}
+          required
+          min={1}
+          max={10}
+        />
+        <Campo
+          etiqueta="Créditos aprobados"
+          type="number"
+          name="creditosAprobados"
+          value={datos.creditosAprobados}
+          onChange={cambiar}
+          required
+          min={0}
+          max={250}
+          ayuda="Datos declarados; luego se validarán con SIGA."
         />
         <Campo
           etiqueta="Correo institucional"

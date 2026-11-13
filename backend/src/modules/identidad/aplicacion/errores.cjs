@@ -26,7 +26,15 @@ class DemasiadosIntentosError extends Error {
   }
 }
 
+class AccesoDenegadoError extends Error {
+  constructor(mensaje = "No tienes permiso para esta acción") {
+    super(mensaje);
+    this.name = "AccesoDenegadoError";
+  }
+}
+
 module.exports = {
+  AccesoDenegadoError,
   DatosInvalidosError,
   CuentaDuplicadaError,
   CredencialesInvalidasError,

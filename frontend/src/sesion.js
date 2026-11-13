@@ -98,11 +98,28 @@ export function useSesion() {
     [establecer]
   );
 
+  // Guarda carrera, ciclo y créditos del estudiante y refresca al usuario.
+  const actualizarPerfilAcademico = useCallback(
+    async (datos) => {
+      const respuesta = await pedir("/perfil-academico", { metodo: "PUT", cuerpo: datos, token });
+      setUsuario(respuesta.usuario);
+    },
+    [token]
+  );
+
   const cerrarSesion = useCallback(() => {
     guardarToken(null);
     setToken(null);
     setUsuario(null);
   }, []);
 
-  return { usuario, token, restaurando, iniciarSesion, registrar, cerrarSesion };
+  return {
+    usuario,
+    token,
+    restaurando,
+    iniciarSesion,
+    registrar,
+    actualizarPerfilAcademico,
+    cerrarSesion
+  };
 }
