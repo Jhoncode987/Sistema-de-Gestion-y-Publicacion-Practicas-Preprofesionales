@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import ListadoOfertas from "./ListadoOfertas.jsx";
 import { MODALIDADES, formatearFecha, formatearFechaHora } from "./formato.js";
 
 const URL_API = import.meta.env.VITE_API_URL ?? "";
@@ -30,7 +31,8 @@ async function pedir(ruta, token, opciones = {}) {
 }
 
 // Botones Aprobar / Rechazar. Rechazar pide el motivo, que verá la empresa.
-function Decision({ alDecidir, puedeAprobar = true }) {
+// Con soloCierre muestra un único botón «Cerrar oferta» (oferta ya publicada).
+function Decision({ alDecidir, puedeAprobar = true, soloCierre = false }) {
   const [rechazando, setRechazando] = useState(false);
   const [motivo, setMotivo] = useState("");
   const [enviando, setEnviando] = useState(false);
@@ -53,7 +55,9 @@ function Decision({ alDecidir, puedeAprobar = true }) {
       {rechazando ? (
         <>
           <label className="campo">
-            Motivo del rechazo (lo verá la empresa)
+            {soloCierre
+              ? "Motivo del cierre (lo verá la empresa)"
+              : "Motivo del rechazo (lo verá la empresa)"}
             <textarea
               value={motivo}
               onChange={(e) => setMotivo(e.target.value)}
@@ -68,9 +72,9 @@ function Decision({ alDecidir, puedeAprobar = true }) {
               type="button"
               className="boton-peligro"
               disabled={enviando || motivo.trim().length < 5}
-              onClick={() => decidir("rechazar")}
+              onClick={() => decidir(soloCierre ? "cerrar" : "rechazar")}
             >
-              Confirmar rechazo
+              {soloCierre ? "Confirmar cierre" : "Confirmar rechazo"}
             </button>
             <button
               type="button"
@@ -82,6 +86,16 @@ function Decision({ alDecidir, puedeAprobar = true }) {
             </button>
           </div>
         </>
+      ) : soloCierre ? (
+        <div className="decision__botones">
+          <button
+            type="button"
+            className="boton-secundario"
+            onClick={() => setRechazando(true)}
+          >
+            Cerrar oferta
+          </button>
+        </div>
       ) : (
         <div className="decision__botones">
           <button
@@ -114,6 +128,7 @@ function Decision({ alDecidir, puedeAprobar = true }) {
 export default function PanelCoordinador({ token, alExpirar }) {
   const [datos, setDatos] = useState(null);
   const [error, setError] = useState("");
+  const [claveRecarga, setClaveRecarga] = useState(0);
 
   const cargar = useCallback(async () => {
     try {
@@ -151,6 +166,27 @@ export default function PanelCoordinador({ token, alExpirar }) {
       }
 
       await cargar();
+    };
+  }
+
+  // Cierra una oferta publicada: deja de verse, pero se conserva su historial.
+  function cerrar(id) {
+    return async (_accion, motivo) => {
+      try {
+        await pedir(`/ofertas/${id}/cerrar`, token, {
+          method: "POST",
+          body: JSON.stringify({ motivo })
+        });
+      } catch (err) {
+        if (err.estado === 401) {
+          return alExpirar();
+        }
+
+        setClaveRecarga((n) => n + 1);
+        throw err;
+      }
+
+      setClaveRecarga((n) => n + 1);
     };
   }
 
@@ -285,6 +321,17 @@ export default function PanelCoordinador({ token, alExpirar }) {
             </section>
           </>
         )}
+
+        <ListadoOfertas
+          token={token}
+          alExpirar={alExpirar}
+          idSeccion="publicadas"
+          titulo="Ofertas publicadas"
+          claveRecarga={claveRecarga}
+          acciones={(oferta) => (
+            <Decision alDecidir={cerrar(oferta.id)} soloCierre />
+          )}
+        />
       </main>
     </>
   );

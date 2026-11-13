@@ -116,3 +116,36 @@ test("publicar una oferta devuelve la oferta actualizada", async () => {
   assert.equal(r.estado, "publicada");
   assert.equal(repo.llamadas[0][1].estado, "publicada");
 });
+
+const { crearCerrarOferta } = require("./revision.cjs");
+
+test("el coordinador cierra una oferta publicada con motivo y queda registrado", async () => {
+  const { deps, repo } = entorno({ actualizada: null });
+  repo.cerrarOfertaPorCoordinador = async (d) => { repo.llamadas.push(["cerrar", d]); return { id: "5", estado: "cerrada" }; };
+
+  const r = await crearCerrarOferta(deps)("9", "5", "  Convocatoria duplicada  ");
+  assert.equal(r.estado, "cerrada");
+  assert.deepEqual(repo.llamadas[0][1], { id: "5", motivo: "Convocatoria duplicada", decididoPor: "9" });
+});
+
+test("cerrar exige motivo, rol de coordinador y una oferta publicada", async () => {
+  const e = entorno();
+  e.repo.cerrarOfertaPorCoordinador = async () => null;
+
+  await assert.rejects(crearCerrarOferta(e.deps)("9", "5", ""), OfertaInvalidaError);
+  await assert.rejects(crearCerrarOferta(e.deps)("9", "x", "motivo válido"), NoEncontradoError);
+  await assert.rejects(crearCerrarOferta(e.deps)("9", "5", "motivo válido"), NoEncontradoError);
+
+  const ya = entorno({ oferta: { estado: "cerrada", empresaEstado: "aprobada" } });
+  ya.repo.cerrarOfertaPorCoordinador = async () => null;
+  await assert.rejects(
+    crearCerrarOferta(ya.deps)("9", "5", "motivo válido"),
+    (x) => x.codigo === "TRANSICION_INVALIDA"
+  );
+
+  for (const rol of ["empresa", "estudiante", null]) {
+    const o = entorno({ rol });
+    o.repo.cerrarOfertaPorCoordinador = async () => ({ id: "5" });
+    await assert.rejects(crearCerrarOferta(o.deps)("1", "5", "motivo válido"), AccesoDenegadoError);
+  }
+});

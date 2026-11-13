@@ -60,6 +60,72 @@ async function pedir(ruta, token, opciones = {}) {
   return datos;
 }
 
+// Cierre en dos pasos: evita cerrar una oferta por un clic accidental.
+function CerrarOferta({ alCerrar }) {
+  const [confirmando, setConfirmando] = useState(false);
+  const [enviando, setEnviando] = useState(false);
+  const [error, setError] = useState("");
+
+  async function cerrar() {
+    setEnviando(true);
+    setError("");
+
+    try {
+      await alCerrar();
+    } catch (err) {
+      setError(err.message);
+      setEnviando(false);
+    }
+  }
+
+  if (!confirmando) {
+    return (
+      <div className="decision">
+        <div className="decision__botones">
+          <button
+            type="button"
+            className="boton-secundario"
+            onClick={() => setConfirmando(true)}
+          >
+            Cerrar oferta
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="decision">
+      <p className="filtros__ayuda">
+        La oferta dejará de mostrarse a los estudiantes y no se puede reabrir.
+      </p>
+      <div className="decision__botones">
+        <button
+          type="button"
+          className="boton-peligro"
+          disabled={enviando}
+          onClick={cerrar}
+        >
+          Sí, cerrar
+        </button>
+        <button
+          type="button"
+          className="boton-secundario"
+          disabled={enviando}
+          onClick={() => setConfirmando(false)}
+        >
+          No
+        </button>
+      </div>
+      {error && (
+        <p className="aviso error" role="alert">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
 export default function PanelEmpresa({ token, alExpirar }) {
   const [panel, setPanel] = useState(null);
   const [carreras, setCarreras] = useState([]);
@@ -131,6 +197,23 @@ export default function PanelEmpresa({ token, alExpirar }) {
   }
 
   const empresa = panel?.empresa;
+
+  function cerrar(id) {
+    return async () => {
+      try {
+        await pedir(`/${id}/cerrar`, token, { method: "POST" });
+      } catch (error) {
+        if (error.estado === 401) {
+          return alExpirar();
+        }
+
+        await cargar();
+        throw error;
+      }
+
+      await cargar();
+    };
+  }
 
   return (
     <>
@@ -348,6 +431,12 @@ export default function PanelEmpresa({ token, alExpirar }) {
                       </p>
                     )}
 
+                    {oferta.estado === "cerrada" && oferta.motivoCierre && (
+                      <p className="aviso aviso--info">
+                        Cerrada por la coordinación: {oferta.motivoCierre}
+                      </p>
+                    )}
+
                     <p>{oferta.descripcion}</p>
 
                     <dl className="detalles">
@@ -375,6 +464,10 @@ export default function PanelEmpresa({ token, alExpirar }) {
                         <dd>{formatearFecha(oferta.fecha_limite)}</dd>
                       </div>
                     </dl>
+
+                    {["publicada", "pendiente_revision"].includes(oferta.estado) && (
+                      <CerrarOferta alCerrar={cerrar(oferta.id)} />
+                    )}
                   </article>
                 );
               })}

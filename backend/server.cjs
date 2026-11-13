@@ -19,13 +19,15 @@ const {
 
 const {
   crearPublicarOferta,
-  crearListarMisOfertas
+  crearListarMisOfertas,
+  crearCerrarMiOferta
 } = require("./src/modules/ofertas/aplicacion/publicar-oferta.cjs");
 
 const {
   crearListarPendientes,
   crearDecidirEmpresa,
-  crearDecidirOferta
+  crearDecidirOferta,
+  crearCerrarOferta
 } = require("./src/modules/ofertas/aplicacion/revision.cjs");
 
 const {
@@ -146,7 +148,8 @@ app.use(
     listarOfertas,
     listarFiltros,
     publicarOferta: crearPublicarOferta({ ofertasRepository, obtenerPerfilUsuario }),
-    listarMisOfertas: crearListarMisOfertas({ ofertasRepository, obtenerPerfilUsuario })
+    listarMisOfertas: crearListarMisOfertas({ ofertasRepository, obtenerPerfilUsuario }),
+    cerrarMiOferta: crearCerrarMiOferta({ ofertasRepository, obtenerPerfilUsuario })
   })
 );
 
@@ -160,7 +163,8 @@ app.use(
   crearCoordinacionRouter({
     listarPendientes: crearListarPendientes(revision),
     decidirEmpresa: crearDecidirEmpresa(revision),
-    decidirOferta: crearDecidirOferta(revision)
+    decidirOferta: crearDecidirOferta(revision),
+    cerrarOferta: crearCerrarOferta(revision)
   })
 );
 

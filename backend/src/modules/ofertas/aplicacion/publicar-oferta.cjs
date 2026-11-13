@@ -1,4 +1,9 @@
-const { OfertaInvalidaError, AccesoDenegadoError } = require("./errores.cjs");
+const {
+  OfertaInvalidaError,
+  AccesoDenegadoError,
+  NoEncontradoError,
+  TransicionInvalidaError
+} = require("./errores.cjs");
 
 const MODALIDADES = ["presencial", "remota", "hibrida"];
 const CICLO_MAXIMO = 10;
@@ -135,4 +140,41 @@ function crearListarMisOfertas({ ofertasRepository, obtenerPerfilUsuario }) {
   };
 }
 
-module.exports = { crearPublicarOferta, crearListarMisOfertas, validarOferta, hoyEnLima };
+function crearCerrarMiOferta({ ofertasRepository, obtenerPerfilUsuario }) {
+  return async function cerrarMiOferta(usuarioId, id) {
+    if (!/^\d{1,18}$/.test(String(id))) {
+      throw new NoEncontradoError("La oferta no existe");
+    }
+
+    const empresa = await empresaDelUsuario(
+      { ofertasRepository, obtenerPerfilUsuario },
+      usuarioId
+    );
+    const cerrada = await ofertasRepository.cerrarOfertaDeEmpresa({
+      id: String(id),
+      empresaId: empresa.id
+    });
+
+    if (cerrada) {
+      return cerrada;
+    }
+
+    // Una oferta ajena responde igual que una inexistente: no revela su existencia.
+    if (!(await ofertasRepository.obtenerOfertaDeEmpresa(String(id), empresa.id))) {
+      throw new NoEncontradoError("La oferta no existe");
+    }
+
+    throw new TransicionInvalidaError(
+      "TRANSICION_INVALIDA",
+      "Solo se pueden cerrar ofertas en revisión o publicadas"
+    );
+  };
+}
+
+module.exports = {
+  crearPublicarOferta,
+  crearListarMisOfertas,
+  crearCerrarMiOferta,
+  validarOferta,
+  hoyEnLima
+};

@@ -63,3 +63,13 @@ test("errores con su código HTTP: 400, 403, 404, 409 (con su código propio) y 
     console.error = silencio;
   }
 });
+
+test("cerrar usa el coordinador del token, el id de la URL y el motivo del cuerpo", async () => {
+  let recibido;
+  const m = crearManejadores({ cerrarOferta: async (...a) => { recibido = a; return { estado: "cerrada" }; } });
+  const res = respuestaFalsa();
+
+  await m.cerrar({ usuario: { id: "9" }, params: { id: "4" }, body: { motivo: "duplicada" } }, res);
+  assert.deepEqual(recibido, ["9", "4", "duplicada"]);
+  assert.equal(res.cuerpo.estado, "cerrada");
+});

@@ -12,6 +12,7 @@ function crearCoordinacionRouter(casosDeUso) {
   router.post("/empresas/:id/rechazar", m.empresa("rechazar"));
   router.post("/ofertas/:id/aprobar", m.oferta("aprobar"));
   router.post("/ofertas/:id/rechazar", m.oferta("rechazar"));
+  router.post("/ofertas/:id/cerrar", m.cerrar);
 
   return router;
 }
