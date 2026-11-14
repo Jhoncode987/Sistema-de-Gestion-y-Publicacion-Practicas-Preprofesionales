@@ -98,6 +98,7 @@ function Portal({ sesion, hash }) {
                 <a href="#empresas">Empresas</a>
                 <a href="#ofertas-revision">Por revisar</a>
                 <a href="#publicadas">Publicadas</a>
+                <a href="#postulaciones">Postulaciones</a>
               </>
             ) : (
               <>
