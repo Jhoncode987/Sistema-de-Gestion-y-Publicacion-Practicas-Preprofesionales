@@ -114,8 +114,9 @@ function BotonPostular({ oferta, postulacion, puedePostular, enPractica, token, 
     const estado = ESTADOS[postulacion.estado];
 
     return (
-      <p className="aviso aviso--exito">
-        Ya postulaste · <span className={`etiqueta ${estado.clase}`}>{estado.texto}</span>
+      <p className={postulacion.estado === "finalizada" ? "aviso aviso--info" : "aviso aviso--exito"}>
+        {postulacion.estado === "finalizada" ? "Práctica realizada" : "Ya postulaste"} ·{" "}
+        <span className={`etiqueta ${estado.clase}`}>{estado.texto}</span>
       </p>
     );
   }
