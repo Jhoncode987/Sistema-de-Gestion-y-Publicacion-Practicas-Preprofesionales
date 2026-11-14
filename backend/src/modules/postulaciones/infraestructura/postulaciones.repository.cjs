@@ -27,6 +27,33 @@ function crearPostulacionesRepository(pool) {
       return rows[0] ?? null;
     },
 
+    // Vista de coordinación: conteo por estado y listado paginado (más recientes primero).
+    async contarPorEstado() {
+      const { rows } = await pool.query(
+        `SELECT estado, count(*)::int AS n
+           FROM postulaciones.postulaciones GROUP BY estado`
+      );
+
+      return rows;
+    },
+
+    async listarTodas({ estado, limite, desplazamiento }) {
+      const { rows } = await pool.query(
+        `SELECT ${COLUMNAS} FROM postulaciones.postulaciones
+          WHERE ($1::text IS NULL OR estado = $1)
+          ORDER BY creada_en DESC, id DESC
+          LIMIT $2 OFFSET $3`,
+        [estado, limite, desplazamiento]
+      );
+      const total = await pool.query(
+        `SELECT count(*)::int AS n FROM postulaciones.postulaciones
+          WHERE ($1::text IS NULL OR estado = $1)`,
+        [estado]
+      );
+
+      return { items: rows, total: Number(total.rows[0].n) };
+    },
+
     async listarPorEstudiante(estudianteId) {
       const { rows } = await pool.query(
         `SELECT ${COLUMNAS} FROM postulaciones.postulaciones

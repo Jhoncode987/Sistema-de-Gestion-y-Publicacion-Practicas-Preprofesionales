@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import ListadoOfertas from "./ListadoOfertas.jsx";
+import PostulacionesCoordinacion from "./PostulacionesCoordinacion.jsx";
 import { MODALIDADES, formatearFecha, formatearFechaHora } from "./formato.js";
 
 const URL_API = import.meta.env.VITE_API_URL ?? "";
@@ -332,6 +333,8 @@ export default function PanelCoordinador({ token, alExpirar }) {
             <Decision alDecidir={cerrar(oferta.id)} soloCierre />
           )}
         />
+
+        <PostulacionesCoordinacion token={token} alExpirar={alExpirar} />
       </main>
     </>
   );

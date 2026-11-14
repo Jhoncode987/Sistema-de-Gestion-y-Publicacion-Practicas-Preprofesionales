@@ -284,7 +284,82 @@ function crearFinalizarPractica({ postulacionesRepository, obtenerPerfilUsuario,
   };
 }
 
+const ESTADOS = ["pendiente", "aceptada", "rechazada", "retirada", "finalizada"];
+const TAMANO_PAGINA = 20;
+
+// Resumen y listado de todas las postulaciones para la coordinación.
+function crearVerPostulacionesCoordinacion({
+  postulacionesRepository,
+  obtenerPerfilUsuario,
+  obtenerPerfiles,
+  ofertas
+}) {
+  return async function verPostulacionesCoordinacion(usuarioId, consulta = {}) {
+    await exigirRol(obtenerPerfilUsuario, usuarioId, "coordinador");
+
+    const estado = consulta.estado === undefined || consulta.estado === "" ? null : consulta.estado;
+
+    if (estado !== null && !ESTADOS.includes(estado)) {
+      throw new DatosInvalidosError("El estado indicado no es válido");
+    }
+
+    const pagina = consulta.page === undefined ? 1 : Number(consulta.page);
+
+    if (!Number.isInteger(pagina) || pagina < 1 || pagina > 10000) {
+      throw new DatosInvalidosError("La página debe ser un entero positivo");
+    }
+
+    const [conteos, lista] = await Promise.all([
+      postulacionesRepository.contarPorEstado(),
+      postulacionesRepository.listarTodas({
+        estado,
+        limite: TAMANO_PAGINA,
+        desplazamiento: (pagina - 1) * TAMANO_PAGINA
+      })
+    ]);
+
+    const resumen = Object.fromEntries(ESTADOS.map((e) => [e, 0]));
+
+    for (const c of conteos) {
+      resumen[c.estado] = Number(c.n);
+    }
+
+    resumen.total = ESTADOS.reduce((suma, e) => suma + resumen[e], 0);
+
+    const [estudiantes, datosOfertas] = await Promise.all([
+      obtenerPerfiles([...new Set(lista.items.map((i) => i.estudianteId))]),
+      ofertas.obtenerOfertasPorIds([...new Set(lista.items.map((i) => i.ofertaId))])
+    ]);
+    const porEstudiante = new Map(estudiantes.map((e) => [String(e.id), e]));
+    const porOferta = new Map(datosOfertas.map((o) => [String(o.id), o]));
+
+    return {
+      resumen,
+      total: lista.total,
+      page: pagina,
+      pageSize: TAMANO_PAGINA,
+      items: lista.items.map((i) => {
+        const e = porEstudiante.get(String(i.estudianteId));
+
+        return {
+          ...i,
+          estudiante: e
+            ? {
+                nombre: e.nombre,
+                codigoEstudiante: e.codigoEstudiante,
+                correo: e.correo,
+                carrera: e.carrera
+              }
+            : null,
+          oferta: porOferta.get(String(i.ofertaId)) ?? null
+        };
+      })
+    };
+  };
+}
+
 module.exports = {
+  crearVerPostulacionesCoordinacion,
   crearFinalizarPractica,
   crearPostular,
   crearListarMisPostulaciones,

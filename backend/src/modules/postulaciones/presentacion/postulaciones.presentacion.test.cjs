@@ -54,3 +54,12 @@ test("aceptar devuelve el resultado con ofertaCerrada", async () => {
   await crearManejadores(base).aceptar({ usuario: { id: "9" }, params: { id: "3" } }, r);
   assert.deepEqual([r.codigo, r.cuerpo.ofertaCerrada], [200, true]);
 });
+
+test("coordinación pasa la consulta (query) al caso de uso", async () => {
+  let recibido;
+  const m = crearManejadores({ ...base, verPostulacionesCoordinacion: async (id, q) => { recibido = [id, q]; return { items: [] }; } });
+  const r = res();
+  await m.coordinacion({ usuario: { id: "5" }, query: { estado: "aceptada", page: "2" } }, r);
+  assert.deepEqual(recibido, ["5", { estado: "aceptada", page: "2" }]);
+  assert.equal(r.codigo, 200);
+});

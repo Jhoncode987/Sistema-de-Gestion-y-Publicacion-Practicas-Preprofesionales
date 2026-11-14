@@ -7,7 +7,8 @@ const {
   crearRetirarPostulacion,
   crearListarPostulantes,
   crearDecidirPostulacion,
-  crearFinalizarPractica
+  crearFinalizarPractica,
+  crearVerPostulacionesCoordinacion
 } = require("./postulaciones.cjs");
 const { evaluarElegibilidad, normalizar } = require("./elegibilidad.cjs");
 const { AccesoDenegadoError, NoEncontradoError, ReglaDeNegocioError } = require("./errores.cjs");
@@ -43,6 +44,15 @@ function montar({ perfiles = {}, oferta = OFERTA } = {}) {
       return { ...f };
     },
     async obtener(id) { return filas.find((f) => f.id === id) ?? null; },
+    async contarPorEstado() {
+      const cuenta = {};
+      filas.forEach((f) => { cuenta[f.estado] = (cuenta[f.estado] ?? 0) + 1; });
+      return Object.entries(cuenta).map(([estado, n]) => ({ estado, n }));
+    },
+    async listarTodas({ estado, limite, desplazamiento }) {
+      const f = filas.filter((x) => estado === null || x.estado === estado);
+      return { items: f.slice(desplazamiento, desplazamiento + limite), total: f.length };
+    },
     async listarPorEstudiante(id) { return filas.filter((f) => f.estudianteId === id); },
     async listarPorOferta(id) { return filas.filter((f) => f.ofertaId === id); },
     async retirar({ id, estudianteId }) {
@@ -277,4 +287,32 @@ test("una práctica finalizada sigue contando como vacante ocupada", async () =>
   const r = await crearListarPostulantes(m.dep)("9", "10");
   assert.equal(r.aceptadas, 1);
   assert.ok(b);
+});
+
+test("coordinación: resumen por estado y listado con estudiante y oferta", async () => {
+  const m = montar({ perfiles: { 5: { id: "5", rol: "coordinador", nombre: "Coord" } } });
+  const ver = crearVerPostulacionesCoordinacion(m.dep);
+  const a = await m.postular("1", { ofertaId: "10" });
+  await m.postular("2", { ofertaId: "10" });
+  await m.decidir.aceptar("9", a.id);
+
+  const r = await ver("5");
+  assert.deepEqual([r.resumen.pendiente, r.resumen.aceptada, r.resumen.finalizada, r.resumen.total], [1, 1, 0, 2]);
+  assert.equal(r.items.length, 2);
+  assert.equal(r.items[0].oferta.titulo, "Practicante de datos");
+  assert.ok(r.items[0].estudiante.nombre);
+  assert.equal("creditosAprobados" in r.items[0].estudiante, false);
+
+  const soloAceptadas = await ver("5", { estado: "aceptada" });
+  assert.deepEqual([soloAceptadas.total, soloAceptadas.items[0].estado], [1, "aceptada"]);
+});
+
+test("coordinación: solo coordinador y parámetros válidos", async () => {
+  const m = montar({ perfiles: { 5: { id: "5", rol: "coordinador", nombre: "Coord" } } });
+  const ver = crearVerPostulacionesCoordinacion(m.dep);
+  await falla(ver("9"), AccesoDenegadoError);
+  await falla(ver("1"), AccesoDenegadoError);
+  for (const c of [{ estado: "inventado" }, { page: "0" }, { page: "x" }, { page: "1.5" }]) {
+    await assert.rejects(ver("5", c), (e) => e.name === "DatosInvalidosError");
+  }
 });

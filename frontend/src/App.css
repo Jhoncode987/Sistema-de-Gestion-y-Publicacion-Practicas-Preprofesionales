@@ -970,3 +970,47 @@ button:disabled {
   font: inherit;
   font-size: 14px;
 }
+
+/* Coordinación: resumen de postulaciones */
+.resumen-cifras {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.cifra {
+  padding: 14px 16px;
+  border: 1px solid #e5dede;
+  border-top: 3px solid var(--dorado);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.cifra strong {
+  display: block;
+  color: var(--granate-oscuro);
+  font-size: 28px;
+  line-height: 1.1;
+}
+
+.cifra span {
+  color: #555;
+  font-size: 13px;
+}
+
+.filtros-postulaciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.filtros-postulaciones .campo {
+  min-width: 180px;
+}
+
+.filtros-postulaciones .resultado {
+  margin: 0 0 8px;
+}

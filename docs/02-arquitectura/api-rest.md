@@ -71,6 +71,7 @@ El backend usa Node.js con Express 5 (ADR-006). Estado de implementación:
 | GET /api/v1/postulaciones/oferta/{ofertaId} | Implementada | Solo la empresa dueña de la oferta: postulantes con su perfil académico. Una oferta ajena responde 404. |
 | POST /api/v1/postulaciones/{id}/aceptar y /rechazar | Implementada | Solo la empresa dueña. Aceptar controla las vacantes con candado (409 `SIN_CUPO`); al cubrirlas, la oferta se cierra y las pendientes se rechazan. Un estudiante solo puede tener una práctica aceptada (409 `ESTUDIANTE_YA_ACEPTADO`); al aceptarlo se retiran sus demás postulaciones pendientes. Rechazar admite `{ motivo }` opcional. |
 | POST /api/v1/postulaciones/{id}/finalizar | Implementada | Empresa dueña o coordinador. Solo una postulación `aceptada` pasa a `finalizada` (409 `TRANSICION_INVALIDA` en otro caso). Libera al estudiante para postular de nuevo. |
+| GET /api/v1/postulaciones/coordinacion | Implementada | Solo coordinador. Resumen por estado (`resumen`) y listado paginado (20 por página) con estudiante y oferta. Parámetros opcionales `estado` y `page`. |
 | Resto de rutas de la tabla | Pendientes | |
 
 **Diferencias actuales con el contrato propuesto** (por alinear cuando se amplíe el módulo):
