@@ -182,6 +182,13 @@ function MisPostulaciones({ token, items, error, alCambiar }) {
                 {p.estado === "aceptada" && (
                   <p className="aviso aviso--exito">¡Fuiste aceptado! La empresa se comunicará contigo.</p>
                 )}
+                {["aceptada", "finalizada"].includes(p.estado) && (
+                  <p className="filtros__ayuda">
+                    {p.asesorNombre
+                      ? `Docente asesor: ${p.asesorNombre}`
+                      : "Docente asesor: la coordinación aún no lo asigna"}
+                  </p>
+                )}
                 {p.estado === "finalizada" && (
                   <p className="aviso aviso--info">Práctica finalizada. Ya puedes postular a nuevas ofertas.</p>
                 )}

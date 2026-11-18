@@ -18,6 +18,8 @@ export default function PostulacionesCoordinacion({ token, alExpirar }) {
   const [datos, setDatos] = useState(null);
   const [error, setError] = useState("");
   const [finalizando, setFinalizando] = useState(null);
+  const [asignando, setAsignando] = useState(null);
+  const [nombreAsesor, setNombreAsesor] = useState("");
 
   const cargar = useCallback(async () => {
     const consulta = new URLSearchParams({ page: String(pagina) });
@@ -43,6 +45,29 @@ export default function PostulacionesCoordinacion({ token, alExpirar }) {
       await pedirApi(`/postulaciones/${id}/finalizar`, token, { metodo: "POST" });
       setFinalizando(null);
     } catch (err) {
+      setError(err.message);
+    }
+
+    await cargar();
+  }
+
+  function abrirAsesor(p) {
+    setAsignando(p.id);
+    setNombreAsesor(p.asesorNombre ?? "");
+  }
+
+  async function guardarAsesor(evento, id) {
+    evento.preventDefault();
+    setError("");
+
+    try {
+      await pedirApi(`/postulaciones/${id}/asesor`, token, {
+        metodo: "PUT",
+        cuerpo: { nombre: nombreAsesor }
+      });
+      setAsignando(null);
+    } catch (err) {
+      if (err.estado === 401) return alExpirar();
       setError(err.message);
     }
 
@@ -125,6 +150,35 @@ export default function PostulacionesCoordinacion({ token, alExpirar }) {
                       </div>
                     </dl>
                     {p.motivo && <p className="filtros__ayuda">Motivo: {p.motivo}</p>}
+
+                    {["aceptada", "finalizada"].includes(p.estado) && (
+                      <p className="filtros__ayuda">
+                        {p.asesorNombre ? `Docente asesor: ${p.asesorNombre}` : "Docente asesor: sin asignar"}
+                      </p>
+                    )}
+
+                    {p.estado === "aceptada" && asignando !== p.id && (
+                      <button type="button" className="boton-secundario" onClick={() => abrirAsesor(p)}>
+                        {p.asesorNombre ? "Cambiar docente asesor" : "Asignar docente asesor"}
+                      </button>
+                    )}
+                    {p.estado === "aceptada" && asignando === p.id && (
+                      <form className="postulante__acciones" onSubmit={(e) => guardarAsesor(e, p.id)}>
+                        <input
+                          value={nombreAsesor}
+                          onChange={(e) => setNombreAsesor(e.target.value)}
+                          minLength={3}
+                          maxLength={120}
+                          required
+                          placeholder="Nombre del docente asesor"
+                          aria-label="Nombre del docente asesor"
+                        />
+                        <button type="submit">Guardar</button>
+                        <button type="button" className="boton-secundario" onClick={() => setAsignando(null)}>
+                          Cancelar
+                        </button>
+                      </form>
+                    )}
 
                     {p.estado === "aceptada" && finalizando !== p.id && (
                       <button type="button" className="boton-secundario" onClick={() => setFinalizando(p.id)}>

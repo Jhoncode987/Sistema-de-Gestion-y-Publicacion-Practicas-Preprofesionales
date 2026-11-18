@@ -1,7 +1,8 @@
 const COLUMNAS = `
   id::text, oferta_id::text AS "ofertaId", estudiante_id::text AS "estudianteId",
   estado, motivo, creada_en AS "creadaEn", decidida_en AS "decididaEn",
-  finalizada_en AS "finalizadaEn"`;
+  finalizada_en AS "finalizadaEn",
+  asesor_nombre AS "asesorNombre", asesor_asignado_en AS "asesorAsignadoEn"`;
 
 function crearPostulacionesRepository(pool) {
   return {
@@ -96,6 +97,19 @@ function crearPostulacionesRepository(pool) {
           WHERE id = $1 AND estado = 'aceptada'
           RETURNING ${COLUMNAS}`,
         [id]
+      );
+
+      return rows[0] ?? null;
+    },
+
+    // Solo una práctica aceptada admite (re)asignar docente asesor.
+    async asignarAsesor({ id, nombre }) {
+      const { rows } = await pool.query(
+        `UPDATE postulaciones.postulaciones
+            SET asesor_nombre = $2, asesor_asignado_en = now()
+          WHERE id = $1 AND estado = 'aceptada'
+          RETURNING ${COLUMNAS}`,
+        [id, nombre]
       );
 
       return rows[0] ?? null;

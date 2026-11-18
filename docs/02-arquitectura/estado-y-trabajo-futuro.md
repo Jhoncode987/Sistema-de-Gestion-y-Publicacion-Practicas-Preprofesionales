@@ -21,8 +21,9 @@
 
 ## Trabajo futuro
 
-1. **Integración con SIGA (RC02, DA03).** Reemplazar el perfil declarado por una consulta autorizada a la base académica mediante el adaptador previsto en el diseño. Depende de que la universidad otorgue acceso. Si SIGA no responde no debe asumirse que el estudiante es elegible.
-2. **Verificación del correo institucional.** Enviar un enlace de confirmación antes de activar la cuenta. Requiere un servicio de correo; con un dominio propio verificado los mensajes llegan a cualquier destinatario, por lo que conviene hacerlo después de contar con el dominio.
-3. **Notificaciones** a estudiantes y empresas ante cambios de estado de una postulación.
-4. **Dominio propio** para la interfaz web.
-5. **Mejoras operativas:** respaldos programados de la base de datos y un plan de pago de Render para evitar la suspensión por inactividad.
+1. **Docentes como usuarios.** Hoy el docente asesor se registra como nombre. Convertirlo en una cuenta con rol propio permitiría que vea a sus asesorados y dé seguimiento a la práctica.
+2. **Integración con SIGA (RC02, DA03).** Reemplazar el perfil declarado por una consulta autorizada a la base académica mediante el adaptador previsto en el diseño. Depende de que la universidad otorgue acceso. Si SIGA no responde no debe asumirse que el estudiante es elegible.
+3. **Verificación del correo institucional.** Enviar un enlace de confirmación antes de activar la cuenta. Requiere un servicio de correo; con un dominio propio verificado los mensajes llegan a cualquier destinatario, por lo que conviene hacerlo después de contar con el dominio.
+4. **Notificaciones** a estudiantes y empresas ante cambios de estado de una postulación.
+5. **Dominio propio** para la interfaz web.
+6. **Mejoras operativas:** respaldos programados de la base de datos y un plan de pago de Render para evitar la suspensión por inactividad.

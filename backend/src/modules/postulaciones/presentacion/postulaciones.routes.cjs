@@ -18,6 +18,7 @@ function crearPostulacionesRouter({ soloEstudiante, soloEmpresa, empresaOCoordin
 
   // Coordinación: resumen y listado general
   router.get("/coordinacion", soloCoordinador, m.coordinacion);
+  router.put("/:id/asesor", soloCoordinador, m.asesor);
 
   // Empresa dueña o coordinación
   router.post("/:id/finalizar", empresaOCoordinador, m.finalizar);
