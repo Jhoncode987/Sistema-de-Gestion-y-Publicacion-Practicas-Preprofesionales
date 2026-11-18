@@ -15,6 +15,9 @@ const perfilCompleto = (u) => u.carrera != null && u.ciclo != null && u.creditos
 
 // Perfil académico declarado: se pide a quien se registró antes de existir
 // las postulaciones y puede corregirse después.
+// Mínimo de créditos para prácticas según la norma de la Escuela.
+const CREDITOS_MINIMOS_PRACTICAS = 160;
+
 // Estado de la verificación de créditos y subida del reporte de notas (PDF).
 function VerificacionCreditos({ usuario, sesion }) {
   const [archivo, setArchivo] = useState(null);
@@ -47,6 +50,17 @@ function VerificacionCreditos({ usuario, sesion }) {
   }
 
   if (usuario.creditosVerificados) {
+    const faltan = CREDITOS_MINIMOS_PRACTICAS - usuario.creditosAprobados;
+
+    if (faltan > 0) {
+      return (
+        <p className="aviso aviso--info">
+          Créditos verificados por la coordinación: {usuario.creditosAprobados}. Las prácticas exigen
+          un mínimo de {CREDITOS_MINIMOS_PRACTICAS}; te faltan {faltan} para poder postular.
+        </p>
+      );
+    }
+
     return (
       <p className="aviso aviso--exito">
         Créditos verificados por la coordinación: {usuario.creditosAprobados}. Ya puedes postular.
