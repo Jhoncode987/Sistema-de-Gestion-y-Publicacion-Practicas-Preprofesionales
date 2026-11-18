@@ -1,0 +1,676 @@
+openapi: 3.0.3
+info:
+  title: API de Gestión y Publicación de Prácticas Preprofesionales (UNSCH)
+  version: 1.0.0
+  description: |
+    API REST del backend monolítico modular (Node.js + Express 5 + PostgreSQL).
+    Describe las rutas implementadas en la primera versión funcional (Sprint 2).
+
+    - Autenticación: token Bearer (JWT) obtenido en `/auth/login` o `/auth/registro`.
+    - Roles: `estudiante`, `empresa` y `coordinador`. Los permisos se comprueban en la ruta y de nuevo en el caso de uso.
+    - Errores: `{ codigo, mensaje }`; el 409 de elegibilidad añade `motivos`.
+    - Las rutas propuestas en el Sprint 1 que aún no existen figuran como pendientes en `docs/02-arquitectura/api-rest.md`.
+servers:
+  - url: http://localhost:3000/api/v1
+    description: Desarrollo local
+  - url: https://practicas-unsch-api.onrender.com/api/v1
+    description: Producción (plan gratuito; la primera respuesta puede tardar)
+tags:
+  - name: Salud
+  - name: Autenticación
+  - name: Verificación de créditos
+  - name: Ofertas
+  - name: Coordinación
+  - name: Postulaciones
+security:
+  - bearerAuth: []
+paths:
+  /salud:
+    get:
+      tags: [Salud]
+      summary: Comprueba que el backend responde
+      security: []
+      responses:
+        "200": { description: El backend responde }
+  /salud/db:
+    get:
+      tags: [Salud]
+      summary: Diagnóstico de la conexión con PostgreSQL
+      security: []
+      responses:
+        "200": { description: Conexión correcta }
+        "503": { $ref: "#/components/responses/NoDisponible" }
+  /auth/registro:
+    post:
+      tags: [Autenticación]
+      summary: Registra una cuenta de estudiante o de empresa
+      description: El coordinador no se registra aquí. Un estudiante usa correo `@unsch.edu.pe`.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/Registro" }
+      responses:
+        "201":
+          description: Cuenta creada
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Sesion" }
+        "400": { $ref: "#/components/responses/DatosInvalidos" }
+        "409": { $ref: "#/components/responses/Conflicto" }
+  /auth/login:
+    post:
+      tags: [Autenticación]
+      summary: Inicia sesión
+      description: Mismo mensaje de error para correo inexistente, clave incorrecta o cuenta inactiva. Limita los intentos fallidos.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [correo, clave]
+              properties:
+                correo: { type: string, format: email }
+                clave: { type: string, format: password }
+      responses:
+        "200":
+          description: Sesión iniciada
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Sesion" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "429": { description: "Demasiados intentos fallidos (`DEMASIADOS_INTENTOS`)", content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+  /auth/yo:
+    get:
+      tags: [Autenticación]
+      summary: Usuario de la sesión actual
+      responses:
+        "200":
+          description: Usuario autenticado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  usuario: { $ref: "#/components/schemas/Usuario" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+  /auth/perfil-academico:
+    put:
+      tags: [Autenticación]
+      summary: Actualiza el perfil académico declarado (solo estudiante)
+      description: Si cambian los créditos declarados, se pierde la verificación de créditos.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [carrera, ciclo, creditosAprobados]
+              properties:
+                carrera: { type: string, minLength: 3, maxLength: 150, example: Ingeniería de Sistemas }
+                ciclo: { type: integer, minimum: 1, maximum: 10 }
+                creditosAprobados: { type: integer, minimum: 0, maximum: 250 }
+      responses:
+        "200":
+          description: Perfil actualizado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  usuario: { $ref: "#/components/schemas/Usuario" }
+        "400": { $ref: "#/components/responses/DatosInvalidos" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "403": { $ref: "#/components/responses/Prohibido" }
+  /auth/reporte-notas:
+    put:
+      tags: [Verificación de créditos]
+      summary: El estudiante sube su reporte de notas (PDF)
+      description: Máximo 2 MB; el archivo debe empezar con `%PDF-`. Reemplaza el reporte anterior.
+      requestBody:
+        required: true
+        content:
+          application/pdf:
+            schema: { type: string, format: binary }
+      responses:
+        "200":
+          description: Reporte guardado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  subido: { type: boolean, example: true }
+        "400": { $ref: "#/components/responses/DatosInvalidos" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "403": { $ref: "#/components/responses/Prohibido" }
+  /auth/estudiantes:
+    get:
+      tags: [Verificación de créditos]
+      summary: Lista estudiantes para verificar créditos (solo coordinador)
+      parameters:
+        - name: estado
+          in: query
+          schema: { type: string, enum: [pendientes, verificados, todos], default: pendientes }
+        - { $ref: "#/components/parameters/Page" }
+      responses:
+        "200":
+          description: Página de estudiantes (20 por página); los pendientes con reporte van primero
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total: { type: integer }
+                  page: { type: integer }
+                  pageSize: { type: integer }
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/EstudianteVerificacion" }
+        "400": { $ref: "#/components/responses/DatosInvalidos" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "403": { $ref: "#/components/responses/Prohibido" }
+  /auth/estudiantes/{id}/reporte:
+    get:
+      tags: [Verificación de créditos]
+      summary: Descarga el reporte de notas de un estudiante (solo coordinador)
+      parameters:
+        - { $ref: "#/components/parameters/Id" }
+      responses:
+        "200":
+          description: "PDF del estudiante (`Cache-Control: no-store`)"
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "403": { $ref: "#/components/responses/Prohibido" }
+        "404": { $ref: "#/components/responses/NoEncontrado" }
+  /auth/estudiantes/{id}/verificacion:
+    put:
+      tags: [Verificación de créditos]
+      summary: Registra los créditos verificados (solo coordinador)
+      description: Solo si el estudiante ya subió su reporte de notas. Guarda quién verificó y cuándo.
+      parameters:
+        - { $ref: "#/components/parameters/Id" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [creditos]
+              properties:
+                creditos: { type: integer, minimum: 0, maximum: 250, description: Total que sumó la coordinación a partir del reporte }
+      responses:
+        "200":
+          description: Créditos verificados
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  estudiante: { $ref: "#/components/schemas/Usuario" }
+        "400": { $ref: "#/components/responses/DatosInvalidos" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "403": { $ref: "#/components/responses/Prohibido" }
+        "404": { $ref: "#/components/responses/NoEncontrado" }
+  /ofertas:
+    get:
+      tags: [Ofertas]
+      summary: Busca ofertas publicadas y vigentes
+      description: Solo ofertas publicadas, de empresas aprobadas y con fecha límite vigente.
+      parameters:
+        - { name: q, in: query, description: "Texto en título, empresa o descripción", schema: { type: string } }
+        - { name: modalidad, in: query, schema: { type: string, enum: [presencial, remota, hibrida] } }
+        - { name: carrera, in: query, schema: { type: string } }
+        - { name: ciclo, in: query, description: Ofertas con ciclo mínimo igual o menor, schema: { type: integer, minimum: 1, maximum: 10 } }
+        - { $ref: "#/components/parameters/Page" }
+        - { name: pageSize, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 9 } }
+      responses:
+        "200":
+          description: Página de ofertas
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/Oferta" }
+                  page: { type: integer }
+                  pageSize: { type: integer }
+                  total: { type: integer }
+        "400": { $ref: "#/components/responses/DatosInvalidos" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+    post:
+      tags: [Ofertas]
+      summary: Publica una oferta (solo empresa)
+      description: Queda en `pendiente_revision` hasta que la coordinación la apruebe. La empresa se toma de la cuenta.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/OfertaNueva" }
+      responses:
+        "201":
+          description: Oferta creada en revisión
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Oferta" }
+        "400": { $ref: "#/components/responses/DatosInvalidos" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "403": { $ref: "#/components/responses/Prohibido" }
+  /ofertas/filtros:
+    get:
+      tags: [Ofertas]
+      summary: Carreras y modalidades con ofertas vigentes
+      responses:
+        "200": { description: Valores para llenar los filtros del portal }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+  /ofertas/mias:
+    get:
+      tags: [Ofertas]
+      summary: Ofertas de la empresa autenticada, en cualquier estado
+      responses:
+        "200": { description: "`{ empresa: { razonSocial, ruc, estado }, items }`" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "403": { $ref: "#/components/responses/Prohibido" }
+  /ofertas/{id}/cerrar:
+    post:
+      tags: [Ofertas]
+      summary: La empresa cierra una oferta propia
+      description: Una oferta ajena responde 404 igual que una inexistente.
+      parameters:
+        - { $ref: "#/components/parameters/Id" }
+      responses:
+        "200": { description: Oferta cerrada }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "403": { $ref: "#/components/responses/Prohibido" }
+        "404": { $ref: "#/components/responses/NoEncontrado" }
+        "409": { $ref: "#/components/responses/Conflicto" }
+  /coordinacion/pendientes:
+    get:
+      tags: [Coordinación]
+      summary: Empresas y ofertas pendientes de revisión (solo coordinador)
+      responses:
+        "200": { description: "`{ empresas, ofertas }`" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "403": { $ref: "#/components/responses/Prohibido" }
+  /coordinacion/empresas/{id}/aprobar:
+    post:
+      tags: [Coordinación]
+      summary: Aprueba una empresa
+      parameters:
+        - { $ref: "#/components/parameters/Id" }
+      responses:
+        "200": { description: Empresa aprobada }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "403": { $ref: "#/components/responses/Prohibido" }
+        "404": { $ref: "#/components/responses/NoEncontrado" }
+        "409": { $ref: "#/components/responses/Conflicto" }
+  /coordinacion/empresas/{id}/rechazar:
+    post:
+      tags: [Coordinación]
+      summary: Rechaza una empresa
+      parameters:
+        - { $ref: "#/components/parameters/Id" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/Motivo" }
+      responses:
+        "200": { description: Empresa rechazada }
+        "400": { $ref: "#/components/responses/DatosInvalidos" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "403": { $ref: "#/components/responses/Prohibido" }
+        "404": { $ref: "#/components/responses/NoEncontrado" }
+        "409": { $ref: "#/components/responses/Conflicto" }
+  /coordinacion/ofertas/{id}/aprobar:
+    post:
+      tags: [Coordinación]
+      summary: Publica una oferta pendiente
+      description: Exige empresa aprobada y fecha límite vigente (409 `EMPRESA_NO_APROBADA` u `OFERTA_VENCIDA`). La decisión es atómica.
+      parameters:
+        - { $ref: "#/components/parameters/Id" }
+      responses:
+        "200": { description: Oferta publicada }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "403": { $ref: "#/components/responses/Prohibido" }
+        "404": { $ref: "#/components/responses/NoEncontrado" }
+        "409": { $ref: "#/components/responses/Conflicto" }
+  /coordinacion/ofertas/{id}/rechazar:
+    post:
+      tags: [Coordinación]
+      summary: Rechaza una oferta
+      parameters:
+        - { $ref: "#/components/parameters/Id" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/Motivo" }
+      responses:
+        "200": { description: Oferta rechazada }
+        "400": { $ref: "#/components/responses/DatosInvalidos" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "403": { $ref: "#/components/responses/Prohibido" }
+        "404": { $ref: "#/components/responses/NoEncontrado" }
+  /coordinacion/ofertas/{id}/cerrar:
+    post:
+      tags: [Coordinación]
+      summary: Retira una oferta publicada
+      description: El motivo es obligatorio y lo ve la empresa. Las ofertas nunca se borran.
+      parameters:
+        - { $ref: "#/components/parameters/Id" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/Motivo" }
+      responses:
+        "200": { description: Oferta cerrada }
+        "400": { $ref: "#/components/responses/DatosInvalidos" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "403": { $ref: "#/components/responses/Prohibido" }
+        "404": { $ref: "#/components/responses/NoEncontrado" }
+        "409": { $ref: "#/components/responses/Conflicto" }
+  /postulaciones:
+    post:
+      tags: [Postulaciones]
+      summary: El estudiante se postula a una oferta
+      description: |
+        Exige créditos verificados, perfil completo, elegibilidad (carrera, ciclo y al menos 160 créditos),
+        oferta vigente, no tener una práctica aceptada y no haberse postulado antes.
+        Con la restricción única estudiante–oferta, una ráfaga de solicitudes idénticas crea una sola fila.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ofertaId]
+              properties:
+                ofertaId: { type: string, example: "10" }
+      responses:
+        "201":
+          description: Postulación creada en estado `pendiente`
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  postulacion: { $ref: "#/components/schemas/Postulacion" }
+        "400": { $ref: "#/components/responses/DatosInvalidos" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "403": { $ref: "#/components/responses/Prohibido" }
+        "404": { $ref: "#/components/responses/NoEncontrado" }
+        "409":
+          description: |
+            Regla de negocio: `CREDITOS_NO_VERIFICADOS`, `PERFIL_INCOMPLETO`, `OFERTA_NO_VIGENTE`,
+            `NO_ELEGIBLE` (con `motivos`), `YA_TIENE_PRACTICA` o `POSTULACION_DUPLICADA`.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /postulaciones/mias:
+    get:
+      tags: [Postulaciones]
+      summary: Postulaciones del estudiante, con el detalle de cada oferta
+      responses:
+        "200": { description: "`{ items }`; cada una con `oferta`" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "403": { $ref: "#/components/responses/Prohibido" }
+  /postulaciones/{id}/retirar:
+    post:
+      tags: [Postulaciones]
+      summary: El estudiante retira una postulación pendiente
+      parameters:
+        - { $ref: "#/components/parameters/Id" }
+      responses:
+        "200": { description: Postulación retirada }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "403": { $ref: "#/components/responses/Prohibido" }
+        "404": { $ref: "#/components/responses/NoEncontrado" }
+        "409": { $ref: "#/components/responses/Conflicto" }
+  /postulaciones/oferta/{ofertaId}:
+    get:
+      tags: [Postulaciones]
+      summary: Postulantes de una oferta propia, con su perfil académico (solo empresa)
+      description: Una oferta ajena responde 404.
+      parameters:
+        - { name: ofertaId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: "`{ oferta, items }`" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "403": { $ref: "#/components/responses/Prohibido" }
+        "404": { $ref: "#/components/responses/NoEncontrado" }
+  /postulaciones/{id}/aceptar:
+    post:
+      tags: [Postulaciones]
+      summary: La empresa acepta a un postulante
+      description: |
+        Controla las vacantes con candado (409 `SIN_CUPO`). Al cubrirlas, la oferta se cierra y las pendientes se rechazan.
+        Un estudiante solo puede tener una práctica aceptada (409 `ESTUDIANTE_YA_ACEPTADO`); al aceptarlo se retiran sus otras pendientes.
+      parameters:
+        - { $ref: "#/components/parameters/Id" }
+      responses:
+        "200": { description: Postulación aceptada }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "403": { $ref: "#/components/responses/Prohibido" }
+        "404": { $ref: "#/components/responses/NoEncontrado" }
+        "409": { $ref: "#/components/responses/Conflicto" }
+  /postulaciones/{id}/rechazar:
+    post:
+      tags: [Postulaciones]
+      summary: La empresa rechaza a un postulante
+      parameters:
+        - { $ref: "#/components/parameters/Id" }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                motivo: { type: string, description: Opcional }
+      responses:
+        "200": { description: Postulación rechazada }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "403": { $ref: "#/components/responses/Prohibido" }
+        "404": { $ref: "#/components/responses/NoEncontrado" }
+        "409": { $ref: "#/components/responses/Conflicto" }
+  /postulaciones/{id}/finalizar:
+    post:
+      tags: [Postulaciones]
+      summary: Marca la práctica como finalizada (empresa dueña o coordinador)
+      description: Solo una postulación `aceptada` pasa a `finalizada`. Libera al estudiante para postular de nuevo.
+      parameters:
+        - { $ref: "#/components/parameters/Id" }
+      responses:
+        "200": { description: Práctica finalizada }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "403": { $ref: "#/components/responses/Prohibido" }
+        "404": { $ref: "#/components/responses/NoEncontrado" }
+        "409": { $ref: "#/components/responses/Conflicto" }
+  /postulaciones/{id}/asesor:
+    put:
+      tags: [Postulaciones]
+      summary: La coordinación asigna el docente asesor (solo coordinador)
+      description: "Solo sobre una postulación `aceptada`. Norma de la Escuela: las prácticas son monitoreadas por un docente asesor."
+      parameters:
+        - { $ref: "#/components/parameters/Id" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nombre]
+              properties:
+                nombre: { type: string, minLength: 3, maxLength: 120, example: Dr. Juan Pérez }
+      responses:
+        "200":
+          description: Asesor asignado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  postulacion: { $ref: "#/components/schemas/Postulacion" }
+        "400": { $ref: "#/components/responses/DatosInvalidos" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "403": { $ref: "#/components/responses/Prohibido" }
+        "404": { $ref: "#/components/responses/NoEncontrado" }
+        "409": { $ref: "#/components/responses/Conflicto" }
+  /postulaciones/coordinacion:
+    get:
+      tags: [Postulaciones]
+      summary: Vista de la coordinación (solo coordinador)
+      parameters:
+        - { name: estado, in: query, schema: { type: string, enum: [pendiente, aceptada, rechazada, retirada, finalizada] } }
+        - { $ref: "#/components/parameters/Page" }
+      responses:
+        "200": { description: "Resumen por estado (`resumen`) y listado paginado de 20 por página con estudiante y oferta" }
+        "400": { $ref: "#/components/responses/DatosInvalidos" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "403": { $ref: "#/components/responses/Prohibido" }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, pattern: "^[0-9]+$" }
+    Page:
+      name: page
+      in: query
+      schema: { type: integer, minimum: 1, default: 1 }
+  responses:
+    DatosInvalidos:
+      description: Datos inválidos (`DATOS_INVALIDOS`)
+      content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+    NoAutenticado:
+      description: Falta el token o venció (`NO_AUTENTICADO`)
+      content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+    Prohibido:
+      description: El rol no tiene permiso (`ACCESO_DENEGADO`)
+      content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+    NoEncontrado:
+      description: No existe o no es del usuario (`NO_ENCONTRADO`)
+      content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+    Conflicto:
+      description: Conflicto con una regla de negocio (por ejemplo `TRANSICION_INVALIDA`)
+      content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+    NoDisponible:
+      description: Servicio no disponible (`SERVICIO_NO_DISPONIBLE`)
+      content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+  schemas:
+    Error:
+      type: object
+      properties:
+        codigo: { type: string, example: NO_ELEGIBLE }
+        mensaje: { type: string }
+        motivos:
+          type: array
+          items: { type: string }
+          description: Solo en `NO_ELEGIBLE`
+    Registro:
+      type: object
+      required: [correo, clave, nombre, rol]
+      properties:
+        correo: { type: string, format: email }
+        clave: { type: string, format: password }
+        nombre: { type: string }
+        rol: { type: string, enum: [estudiante, empresa] }
+        codigoEstudiante: { type: string, pattern: "^[0-9]{6,10}$", description: Solo estudiante }
+        carrera: { type: string, description: Solo estudiante }
+        ciclo: { type: integer, minimum: 1, maximum: 10, description: Solo estudiante }
+        creditosAprobados: { type: integer, minimum: 0, maximum: 250, description: Solo estudiante }
+        ruc: { type: string, pattern: "^[0-9]{11}$", description: Solo empresa }
+        razonSocial: { type: string, description: Solo empresa }
+    Sesion:
+      type: object
+      properties:
+        usuario: { $ref: "#/components/schemas/Usuario" }
+        token: { type: string, description: JWT HS256 válido 8 horas }
+    Usuario:
+      type: object
+      properties:
+        id: { type: string }
+        correo: { type: string }
+        rol: { type: string, enum: [estudiante, empresa, coordinador] }
+        nombre: { type: string }
+        codigoEstudiante: { type: string, nullable: true }
+        ruc: { type: string, nullable: true }
+        razonSocial: { type: string, nullable: true }
+        activo: { type: boolean }
+        carrera: { type: string, nullable: true }
+        ciclo: { type: integer, nullable: true }
+        creditosAprobados: { type: integer, nullable: true }
+        creditosVerificados: { type: boolean }
+        creditosVerificadosEn: { type: string, format: date-time, nullable: true }
+        tieneReporte: { type: boolean }
+    EstudianteVerificacion:
+      type: object
+      properties:
+        id: { type: string }
+        nombre: { type: string }
+        codigoEstudiante: { type: string }
+        correo: { type: string }
+        carrera: { type: string, nullable: true }
+        ciclo: { type: integer, nullable: true }
+        creditosAprobados: { type: integer, nullable: true }
+        creditosVerificados: { type: boolean }
+        creditosVerificadosEn: { type: string, format: date-time, nullable: true }
+        tieneReporte: { type: boolean }
+    Oferta:
+      type: object
+      properties:
+        id: { type: string }
+        empresa: { type: string }
+        titulo: { type: string }
+        descripcion: { type: string }
+        carrera: { type: string }
+        ciclo_minimo: { type: integer }
+        creditos_minimos: { type: integer, minimum: 160 }
+        modalidad: { type: string, enum: [presencial, remota, hibrida] }
+        vacantes: { type: integer }
+        fecha_limite: { type: string, format: date }
+        estado: { type: string, enum: [pendiente_revision, publicada, rechazada, cerrada, vencida] }
+    OfertaNueva:
+      type: object
+      required: [titulo, descripcion, carrera, ciclo_minimo, modalidad, vacantes, fecha_limite]
+      properties:
+        titulo: { type: string, maxLength: 200 }
+        descripcion: { type: string }
+        carrera: { type: string, maxLength: 150 }
+        ciclo_minimo: { type: integer, minimum: 1, maximum: 10 }
+        creditos_minimos: { type: integer, minimum: 160, maximum: 250, default: 160, description: El mínimo de 160 lo fija la norma de la Escuela }
+        modalidad: { type: string, enum: [presencial, remota, hibrida] }
+        vacantes: { type: integer, minimum: 1, maximum: 100 }
+        fecha_limite: { type: string, format: date, description: Posterior a hoy y máximo 365 días }
+    Motivo:
+      type: object
+      required: [motivo]
+      properties:
+        motivo: { type: string, minLength: 5, maxLength: 500 }
+    Postulacion:
+      type: object
+      properties:
+        id: { type: string }
+        ofertaId: { type: string }
+        estudianteId: { type: string }
+        estado: { type: string, enum: [pendiente, aceptada, rechazada, retirada, finalizada] }
+        motivo: { type: string, nullable: true }
+        creadaEn: { type: string, format: date-time }
+        decididaEn: { type: string, format: date-time, nullable: true }
+        finalizadaEn: { type: string, format: date-time, nullable: true }
+        asesorNombre: { type: string, nullable: true }
+        asesorAsignadoEn: { type: string, format: date-time, nullable: true }
