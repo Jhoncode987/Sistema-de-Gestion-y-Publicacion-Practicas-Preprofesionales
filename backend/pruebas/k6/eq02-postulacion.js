@@ -8,6 +8,7 @@ import { check, sleep } from "k6";
 import { BASE, cabeceras, estudiantes, escenariosProtocolo } from "./comun.js";
 
 const USUARIOS = Number(__ENV.USUARIOS || 20);
+let inesperadas = 0;
 
 export const options = {
   scenarios: escenariosProtocolo("postular", USUARIOS),
@@ -49,6 +50,11 @@ export function postular(datos) {
     JSON.stringify({ ofertaId: String(oferta) }),
     cabeceras(yo.token)
   );
+
+  // Diagnóstico: muestra el código y el cuerpo de las primeras respuestas que no son 201.
+  if (r.status !== 201 && ++inesperadas <= 5) {
+    console.warn(`Respuesta ${r.status} (estudiante ${yo.id}, oferta ${oferta}): ${String(r.body).slice(0, 200)}`);
+  }
 
   check(r, { "responde 201": (x) => x.status === 201 });
   sleep(2);
