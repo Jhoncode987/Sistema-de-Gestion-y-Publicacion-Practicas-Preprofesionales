@@ -33,7 +33,15 @@ class AccesoDenegadoError extends Error {
   }
 }
 
+class NoEncontradoError extends Error {
+  constructor(mensaje = "No existe") {
+    super(mensaje);
+    this.name = "NoEncontradoError";
+  }
+}
+
 module.exports = {
+  NoEncontradoError,
   AccesoDenegadoError,
   DatosInvalidosError,
   CuentaDuplicadaError,

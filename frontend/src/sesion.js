@@ -107,6 +107,12 @@ export function useSesion() {
     [token]
   );
 
+  // Vuelve a pedir al usuario (por ejemplo tras subir el reporte de notas).
+  const recargarUsuario = useCallback(async () => {
+    const datos = await pedir("/yo", { token });
+    setUsuario(datos.usuario);
+  }, [token]);
+
   const cerrarSesion = useCallback(() => {
     guardarToken(null);
     setToken(null);
@@ -120,6 +126,7 @@ export function useSesion() {
     iniciarSesion,
     registrar,
     actualizarPerfilAcademico,
+    recargarUsuario,
     cerrarSesion
   };
 }

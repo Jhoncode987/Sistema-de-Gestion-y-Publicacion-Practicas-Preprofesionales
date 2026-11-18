@@ -15,6 +15,69 @@ const perfilCompleto = (u) => u.carrera != null && u.ciclo != null && u.creditos
 
 // Perfil académico declarado: se pide a quien se registró antes de existir
 // las postulaciones y puede corregirse después.
+// Estado de la verificación de créditos y subida del reporte de notas (PDF).
+function VerificacionCreditos({ usuario, sesion }) {
+  const [archivo, setArchivo] = useState(null);
+  const [error, setError] = useState("");
+  const [aviso, setAviso] = useState("");
+  const [enviando, setEnviando] = useState(false);
+
+  async function subir(evento) {
+    evento.preventDefault();
+    setError("");
+    setAviso("");
+
+    if (!archivo) return setError("Elige tu reporte de notas en PDF.");
+    if (archivo.size > 2 * 1024 * 1024) return setError("El archivo no puede superar 2 MB.");
+
+    setEnviando(true);
+
+    try {
+      await pedirApi("/auth/reporte-notas", sesion.token, { metodo: "PUT", archivo });
+      await sesion.recargarUsuario();
+      setArchivo(null);
+      setAviso("Reporte enviado. La coordinación verificará tus créditos.");
+      evento.target.reset();
+    } catch (err) {
+      if (err.estado === 401) return sesion.cerrarSesion();
+      setError(err.message);
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  if (usuario.creditosVerificados) {
+    return (
+      <p className="aviso aviso--exito">
+        Créditos verificados por la coordinación: {usuario.creditosAprobados}. Ya puedes postular.
+      </p>
+    );
+  }
+
+  return (
+    <section className="perfil-academico" aria-label="Verificación de créditos">
+      <p className="aviso aviso--info">
+        {usuario.tieneReporte
+          ? "Tu reporte de notas está en revisión. Podrás postular cuando la coordinación verifique tus créditos."
+          : "Para postular, la coordinación debe verificar tus créditos. Descarga tu reporte de notas desde el intranet y súbelo aquí en PDF."}
+      </p>
+      <form onSubmit={subir} className="postulante__acciones">
+        <input
+          type="file"
+          accept="application/pdf"
+          aria-label="Reporte de notas en PDF"
+          onChange={(e) => setArchivo(e.target.files[0] ?? null)}
+        />
+        <button type="submit" disabled={enviando}>
+          {enviando ? "Enviando…" : usuario.tieneReporte ? "Reemplazar reporte" : "Subir reporte"}
+        </button>
+      </form>
+      {aviso && <p className="aviso aviso--exito" role="status">{aviso}</p>}
+      {error && <p className="aviso error" role="alert">{error}</p>}
+    </section>
+  );
+}
+
 function PerfilAcademico({ usuario, sesion }) {
   const completo = perfilCompleto(usuario);
   const [editando, setEditando] = useState(!completo);
@@ -237,6 +300,7 @@ export default function PanelEstudiante({ sesion }) {
     <>
       <div className="contenedor">
         <PerfilAcademico key={String(completo)} usuario={usuario} sesion={sesion} />
+        {completo && <VerificacionCreditos usuario={usuario} sesion={sesion} />}
       </div>
       <ListadoOfertas
         token={token}

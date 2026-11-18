@@ -113,6 +113,14 @@ Este documento registra las decisiones principales para el Sistema Web para la G
 - **Consecuencias:** la elegibilidad cumple el reglamento aunque la empresa no lo recuerde. Como el perfil académico sigue siendo declarado, la verificación real de créditos depende de la futura integración con SIGA. Asignar docentes como usuarios con su propio acceso queda como trabajo futuro.
 - **Criterio de validación:** pruebas de elegibilidad con ofertas que piden menos o más de 160 créditos, validación de la oferta y pruebas del caso de uso de asesor (rol, estado y nombre).
 
+## ADR-011 — Verificación manual de créditos con reporte de notas
+
+- **Estado:** aceptado.
+- **Contexto:** la norma exige 160 créditos, pero el estudiante los declara y no hay forma de comprobarlos mientras no exista integración con SIGA. El intranet permite exportar el reporte de notas (cursos aprobados con sus créditos), sin el total, que hay que sumar.
+- **Decisión:** el estudiante sube su reporte de notas en PDF (máximo 2 MB, guardado en la base de datos, un reporte vigente por estudiante). La coordinación lo abre, suma los créditos y registra el total (migración 012: quién verificó y cuándo). Postulaciones solo permite postular con créditos verificados (`CREDITOS_NO_VERIFICADOS`). Si el estudiante modifica sus créditos declarados, la verificación se pierde. El PDF solo lo ve el coordinador.
+- **Consecuencias:** la elegibilidad por créditos descansa en una revisión humana auditable. No requiere almacenamiento externo, pero los PDF ocupan espacio en la base (límite de 2 MB cada uno). Los estudiantes existentes quedan sin verificar. La integración con SIGA reemplazará este paso.
+- **Criterio de validación:** pruebas del caso de uso (rol, PDF válido, tamaño, total entre 0 y 250, reporte obligatorio), de la regla al postular y comprobación de las consultas en PostgreSQL.
+
 ## Resumen de trazabilidad
 
 | Decisión | Drivers principales | Resultado esperado |
@@ -127,3 +135,4 @@ Este documento registra las decisiones principales para el Sistema Web para la G
 | ADR-008 Autenticación con hash y token firmado | DA05 | Rutas protegidas por rol; contraseñas nunca en claro. |
 | ADR-009 Postulaciones con candado por oferta | RC02, DA05 | Sin duplicados ni vacantes sobrepasadas; cierre automático al llenarse. |
 | ADR-010 Piso de 160 créditos y docente asesor | RC02 | Elegibilidad alineada al reglamento de la Escuela; práctica con asesor designado. |
+| ADR-011 Verificación manual de créditos | RC02, DA05 | Los créditos que cuentan fueron revisados por la coordinación. |

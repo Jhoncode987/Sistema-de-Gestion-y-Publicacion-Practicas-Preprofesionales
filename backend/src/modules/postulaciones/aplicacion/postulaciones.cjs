@@ -43,6 +43,16 @@ function crearPostular({ postulacionesRepository, obtenerPerfilUsuario, ofertas 
       );
     }
 
+    // Mientras no exista SIGA, solo valen los créditos que la coordinación verificó.
+    if (!perfil.creditosVerificados) {
+      throw new ReglaDeNegocioError(
+        "CREDITOS_NO_VERIFICADOS",
+        perfil.tieneReporte
+          ? "Tus créditos aún no están verificados. La coordinación está revisando tu reporte de notas"
+          : "Sube tu reporte de notas para que la coordinación verifique tus créditos"
+      );
+    }
+
     if (await postulacionesRepository.tieneAceptada(perfil.id)) {
       throw new ReglaDeNegocioError(
         "YA_TIENE_PRACTICA",

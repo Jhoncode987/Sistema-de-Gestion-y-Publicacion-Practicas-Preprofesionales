@@ -46,6 +46,7 @@ La decisión está registrada en el [ADR-006](docs/02-arquitectura/decisiones-ar
    psql -d nombre_de_la_base -f backend/migrations/009_finalizar_practica.sql
    psql -d nombre_de_la_base -f backend/migrations/010_piso_creditos_practicas.sql
    psql -d nombre_de_la_base -f backend/migrations/011_docente_asesor.sql
+   psql -d nombre_de_la_base -f backend/migrations/012_verificacion_creditos.sql
    psql -d nombre_de_la_base -f backend/database/001_datos_prueba.sql
    psql -d nombre_de_la_base -f backend/database/002_datos_prueba_ofertas.sql   # opcional: ~23 ofertas para probar filtros y paginación
    psql -d nombre_de_la_base -f backend/database/003_limpiar_datos_demo.sql     # opcional: borra solo los datos de demostración (RUC 00000000001 a 00000000009)

@@ -21,7 +21,8 @@ const OFERTA = {
 };
 const ESTUDIANTE = {
   id: "1", rol: "estudiante", nombre: "Ana", codigoEstudiante: "20180123",
-  correo: "ana@unsch.edu.pe", carrera: "Ingenieria  de sistemas", ciclo: 8, creditosAprobados: 200
+  correo: "ana@unsch.edu.pe", carrera: "Ingenieria  de sistemas", ciclo: 8, creditosAprobados: 200,
+  creditosVerificados: true, tieneReporte: true
 };
 
 function montar({ perfiles = {}, oferta = OFERTA } = {}) {
@@ -139,6 +140,20 @@ test("elegibilidad: la norma exige 160 créditos aunque la oferta pida menos; la
   assert.match(evaluarElegibilidad(pocos, sinMinimo)[0], /160 créditos/);
   assert.match(evaluarElegibilidad(ok, exigente)[0], /190 créditos/);
   assert.deepEqual(evaluarElegibilidad({ ...ok, creditosAprobados: 190 }, exigente), []);
+});
+
+test("sin créditos verificados no se puede postular, con mensaje según tenga o no reporte", async () => {
+  const sinReporte = montar({ perfiles: { 1: { ...ESTUDIANTE, creditosVerificados: false, tieneReporte: false } } });
+  await assert.rejects(
+    sinReporte.postular("1", { ofertaId: "10" }),
+    (e) => e instanceof ReglaDeNegocioError && e.codigo === "CREDITOS_NO_VERIFICADOS" && /Sube tu reporte/.test(e.message)
+  );
+  const enRevision = montar({ perfiles: { 1: { ...ESTUDIANTE, creditosVerificados: false } } });
+  await assert.rejects(
+    enRevision.postular("1", { ofertaId: "10" }),
+    (e) => e.codigo === "CREDITOS_NO_VERIFICADOS" && /revisando/.test(e.message)
+  );
+  assert.equal(enRevision.filas.length, 0);
 });
 
 test("un estudiante elegible postula y queda pendiente", async () => {

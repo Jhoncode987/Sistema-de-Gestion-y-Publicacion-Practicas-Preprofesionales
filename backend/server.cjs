@@ -58,6 +58,12 @@ const { crearLimitadorIntentos } = require("./src/modules/identidad/aplicacion/l
 const { crearRegistrarUsuario } = require("./src/modules/identidad/aplicacion/registrar-usuario.cjs");
 const { crearIniciarSesion } = require("./src/modules/identidad/aplicacion/iniciar-sesion.cjs");
 const { crearActualizarPerfilAcademico } = require("./src/modules/identidad/aplicacion/actualizar-perfil-academico.cjs");
+const {
+  crearSubirReporteNotas,
+  crearListarEstudiantes,
+  crearObtenerReporteNotas,
+  crearVerificarCreditos
+} = require("./src/modules/identidad/aplicacion/verificacion-creditos.cjs");
 const { crearObtenerPerfil, crearObtenerPerfiles } = require("./src/modules/identidad/aplicacion/obtener-perfil.cjs");
 const { crearAutenticar, requerirRol } = require("./src/modules/identidad/presentacion/autenticacion.middleware.cjs");
 const { crearAuthRouter } = require("./src/modules/identidad/presentacion/auth.routes.cjs");
@@ -147,10 +153,16 @@ app.use(
   "/api/v1/auth",
   crearAuthRouter({
     autenticar,
+    soloEstudiante: requerirRol("estudiante"),
+    soloCoordinador: requerirRol("coordinador"),
     registrarUsuario: crearRegistrarUsuario({ usuariosRepository, tokens }),
     iniciarSesion: crearIniciarSesion({ usuariosRepository, tokens, limitador }),
     obtenerPerfil,
-    actualizarPerfilAcademico: crearActualizarPerfilAcademico({ usuariosRepository })
+    actualizarPerfilAcademico: crearActualizarPerfilAcademico({ usuariosRepository }),
+    subirReporteNotas: crearSubirReporteNotas({ usuariosRepository }),
+    listarEstudiantes: crearListarEstudiantes({ usuariosRepository }),
+    obtenerReporteNotas: crearObtenerReporteNotas({ usuariosRepository }),
+    verificarCreditos: crearVerificarCreditos({ usuariosRepository })
   })
 );
 

@@ -14,7 +14,7 @@
 
 | Limitación | Consecuencia | Mitigación actual |
 |------------|--------------|-------------------|
-| El perfil académico (carrera, ciclo, créditos) lo declara el estudiante. | No es verificable. | Se declara de forma explícita y el diseño ya separa la elegibilidad en un componente intercambiable. |
+| Los créditos los verifica la coordinación a mano, con el reporte de notas que sube el estudiante. | Depende de la revisión de una persona y el reporte es un PDF que no se valida automáticamente. | Solo cuentan los créditos verificados; si el estudiante cambia sus créditos declarados la verificación se pierde, y quedan registrados quién verificó y cuándo. Carrera y ciclo siguen siendo declarados. |
 | El correo institucional se valida por su formato, no por su propiedad. | Alguien podría registrarse con un correo `@unsch.edu.pe` ajeno. | Los datos de la cuenta no dan acceso a información de terceros. |
 | Una postulación retirada no se puede repetir. | El estudiante no puede volver a postular a la misma oferta. | Queda como historial. |
 | Plan gratuito de Render. | Primera carga lenta tras inactividad. | Abrir el sistema unos minutos antes de usarlo. |
@@ -22,7 +22,7 @@
 ## Trabajo futuro
 
 1. **Docentes como usuarios.** Hoy el docente asesor se registra como nombre. Convertirlo en una cuenta con rol propio permitiría que vea a sus asesorados y dé seguimiento a la práctica.
-2. **Integración con SIGA (RC02, DA03).** Reemplazar el perfil declarado por una consulta autorizada a la base académica mediante el adaptador previsto en el diseño. Depende de que la universidad otorgue acceso. Si SIGA no responde no debe asumirse que el estudiante es elegible.
+2. **Integración con SIGA (RC02, DA03).** Reemplazar la verificación manual y el perfil declarado por una consulta autorizada a la base académica mediante el adaptador previsto en el diseño. Depende de que la universidad otorgue acceso. Si SIGA no responde no debe asumirse que el estudiante es elegible.
 3. **Verificación del correo institucional.** Enviar un enlace de confirmación antes de activar la cuenta. Requiere un servicio de correo; con un dominio propio verificado los mensajes llegan a cualquier destinatario, por lo que conviene hacerlo después de contar con el dominio.
 4. **Notificaciones** a estudiantes y empresas ante cambios de estado de una postulación.
 5. **Dominio propio** para la interfaz web.
