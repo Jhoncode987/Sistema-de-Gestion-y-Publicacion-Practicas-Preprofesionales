@@ -5,7 +5,8 @@ const {
   CuentaDuplicadaError,
   CredencialesInvalidasError,
   DemasiadosIntentosError,
-  AccesoDenegadoError
+  AccesoDenegadoError,
+  NoEncontradoError
 } = require("../aplicacion/errores.cjs");
 
 function responderError(res, error, contexto) {
@@ -14,7 +15,8 @@ function responderError(res, error, contexto) {
     [CuentaDuplicadaError, 409, "CUENTA_DUPLICADA"],
     [CredencialesInvalidasError, 401, "CREDENCIALES_INVALIDAS"],
     [DemasiadosIntentosError, 429, "DEMASIADOS_INTENTOS"],
-    [AccesoDenegadoError, 403, "ACCESO_DENEGADO"]
+    [AccesoDenegadoError, 403, "ACCESO_DENEGADO"],
+    [NoEncontradoError, 404, "NO_ENCONTRADO"]
   ];
 
   for (const [Clase, estado, codigo] of conocidos) {
@@ -36,7 +38,11 @@ function crearManejadores({
   registrarUsuario,
   iniciarSesion,
   obtenerPerfil,
-  actualizarPerfilAcademico
+  actualizarPerfilAcademico,
+  subirReporteNotas,
+  listarEstudiantes,
+  obtenerReporteNotas,
+  verificarCreditos
 }) {
   return {
     async registro(req, res) {
@@ -65,6 +71,44 @@ function crearManejadores({
       }
     },
 
+    // El cuerpo llega como PDF binario (Buffer); sin PDF, req.body no es un Buffer.
+    async subirReporte(req, res) {
+      try {
+        res.json(await subirReporteNotas(req.usuario.id, req.body));
+      } catch (error) {
+        responderError(res, error, "subir reporte de notas");
+      }
+    },
+
+    async estudiantes(req, res) {
+      try {
+        res.json(await listarEstudiantes(req.usuario.id, req.query));
+      } catch (error) {
+        responderError(res, error, "listar estudiantes");
+      }
+    },
+
+    async reporte(req, res) {
+      try {
+        const pdf = await obtenerReporteNotas(req.usuario.id, req.params.id);
+
+        res.set("Content-Type", "application/pdf");
+        res.set("Content-Disposition", 'inline; filename="reporte-notas.pdf"');
+        res.set("Cache-Control", "no-store");
+        res.send(pdf);
+      } catch (error) {
+        responderError(res, error, "obtener reporte de notas");
+      }
+    },
+
+    async verificacion(req, res) {
+      try {
+        res.json(await verificarCreditos(req.usuario.id, req.params.id, req.body));
+      } catch (error) {
+        responderError(res, error, "verificar créditos");
+      }
+    },
+
     async yo(req, res) {
       try {
         const usuario = await obtenerPerfil(req.usuario.id);
@@ -84,7 +128,7 @@ function crearManejadores({
   };
 }
 
-function crearAuthRouter({ autenticar, ...casosDeUso }) {
+function crearAuthRouter({ autenticar, soloEstudiante, soloCoordinador, ...casosDeUso }) {
   const router = express.Router();
   const manejadores = crearManejadores(casosDeUso);
 
@@ -92,6 +136,17 @@ function crearAuthRouter({ autenticar, ...casosDeUso }) {
   router.post("/login", manejadores.login);
   router.get("/yo", autenticar, manejadores.yo);
   router.put("/perfil-academico", autenticar, manejadores.perfilAcademico);
+
+  router.put(
+    "/reporte-notas",
+    autenticar,
+    soloEstudiante,
+    express.raw({ type: "application/pdf", limit: "2mb" }),
+    manejadores.subirReporte
+  );
+  router.get("/estudiantes", autenticar, soloCoordinador, manejadores.estudiantes);
+  router.get("/estudiantes/:id/reporte", autenticar, soloCoordinador, manejadores.reporte);
+  router.put("/estudiantes/:id/verificacion", autenticar, soloCoordinador, manejadores.verificacion);
 
   return router;
 }

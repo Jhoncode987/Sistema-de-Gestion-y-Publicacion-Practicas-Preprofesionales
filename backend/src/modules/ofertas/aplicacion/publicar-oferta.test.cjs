@@ -18,7 +18,7 @@ const valida = {
   descripcion: "Apoyo en el desarrollo de módulos web con React y Node.js.",
   carrera: "Ingeniería de Sistemas",
   ciclo_minimo: "8",
-  creditos_minimos: 100,
+  creditos_minimos: 180,
   modalidad: "HIBRIDA",
   vacantes: 2,
   fecha_limite: "2026-12-31"
@@ -61,12 +61,13 @@ test("normaliza una oferta válida", () => {
   assert.equal(d.titulo, "Practicante de desarrollo web");
   assert.equal(d.ciclo_minimo, 8);
   assert.equal(d.modalidad, "hibrida");
-  assert.equal(d.creditos_minimos, 100);
+  assert.equal(d.creditos_minimos, 180);
 });
 
-test("créditos mínimos es opcional y vale 0", () => {
+test("créditos mínimos es opcional y vale 160, el mínimo de la norma", () => {
   const { creditos_minimos, ...sin } = valida;
-  assert.equal(validarOferta(sin, HOY).creditos_minimos, 0);
+  assert.equal(validarOferta(sin, HOY).creditos_minimos, 160);
+  assert.equal(validarOferta({ ...valida, creditos_minimos: 160 }, HOY).creditos_minimos, 160);
 });
 
 test("rechaza ofertas inválidas", () => {
@@ -83,6 +84,9 @@ test("rechaza ofertas inválidas", () => {
     { ...valida, ciclo_minimo: "abc" },
     { ...valida, ciclo_minimo: 7.5 },
     { ...valida, creditos_minimos: -1 },
+    { ...valida, creditos_minimos: 0 },
+    { ...valida, creditos_minimos: 159 },
+    { ...valida, creditos_minimos: 251 },
     { ...valida, vacantes: 0 },
     { ...valida, vacantes: 101 },
     { ...valida, fecha_limite: HOY },

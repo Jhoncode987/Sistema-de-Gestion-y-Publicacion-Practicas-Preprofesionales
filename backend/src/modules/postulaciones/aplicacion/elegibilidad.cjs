@@ -1,3 +1,5 @@
+const { CREDITOS_MINIMOS_PRACTICAS } = require("../../../compartido/normativa.cjs");
+
 // Normaliza para comparar carreras: sin tildes, mayúsculas ni espacios de más.
 function normalizar(texto) {
   return String(texto ?? "")
@@ -22,9 +24,12 @@ function evaluarElegibilidad(perfil, oferta) {
     motivos.push(`Requiere estar en el ciclo ${oferta.ciclo_minimo} o superior (estás en el ${perfil.ciclo})`);
   }
 
-  if (perfil.creditosAprobados < oferta.creditos_minimos) {
+  // La norma de la Escuela fija un piso de 160 créditos; la oferta puede pedir más.
+  const creditosRequeridos = Math.max(oferta.creditos_minimos, CREDITOS_MINIMOS_PRACTICAS);
+
+  if (perfil.creditosAprobados < creditosRequeridos) {
     motivos.push(
-      `Requiere ${oferta.creditos_minimos} créditos aprobados (tienes ${perfil.creditosAprobados})`
+      `Requiere ${creditosRequeridos} créditos aprobados (tienes ${perfil.creditosAprobados})`
     );
   }
 

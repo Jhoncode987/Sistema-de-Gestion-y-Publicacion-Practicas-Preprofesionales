@@ -17,7 +17,7 @@ const FORMULARIO_VACIO = {
   descripcion: "",
   carrera: "",
   ciclo_minimo: "1",
-  creditos_minimos: "0",
+  creditos_minimos: "160",
   modalidad: "presencial",
   vacantes: "1",
   fecha_limite: ""
@@ -148,6 +148,14 @@ function Postulantes({ oferta, token, alCambiarOferta }) {
                       <p className="postulante__datos">Postuló el {formatearFechaHora(p.creadaEn)}</p>
                       {p.estado === "rechazada" && p.motivo && <p className="postulante__datos">Motivo: {p.motivo}</p>}
                     </div>
+
+                    {["aceptada", "finalizada"].includes(p.estado) && (
+                      <p className="filtros__ayuda">
+                        {p.asesorNombre
+                          ? `Docente asesor: ${p.asesorNombre}`
+                          : "Docente asesor: aún no asignado por la coordinación"}
+                      </p>
+                    )}
 
                     {p.estado === "pendiente" && rechazando !== p.id && (
                       <div className="postulante__acciones">
@@ -471,9 +479,10 @@ export default function PanelEmpresa({ token, alExpirar }) {
                 value={datos.creditos_minimos}
                 onChange={cambiar}
                 required
-                min={0}
+                min={160}
                 max={250}
               />
+              <small>Mínimo 160 créditos, según la norma de la Escuela.</small>
             </label>
 
             <label className="campo">

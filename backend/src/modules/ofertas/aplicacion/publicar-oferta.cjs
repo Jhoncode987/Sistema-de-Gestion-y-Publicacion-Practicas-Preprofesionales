@@ -5,6 +5,8 @@ const {
   TransicionInvalidaError
 } = require("./errores.cjs");
 
+const { CREDITOS_MINIMOS_PRACTICAS } = require("../../../compartido/normativa.cjs");
+
 const MODALIDADES = ["presencial", "remota", "hibrida"];
 const CICLO_MAXIMO = 10;
 const DIAS_MAXIMOS = 365;
@@ -84,7 +86,12 @@ function validarOferta(entrada, hoy) {
     descripcion: texto(entrada.descripcion, "La descripción", 20, 2000),
     carrera: texto(entrada.carrera, "La carrera", 3, 150).replace(/\s+/g, " "),
     ciclo_minimo: entero(entrada.ciclo_minimo, "El ciclo mínimo", 1, CICLO_MAXIMO),
-    creditos_minimos: entero(entrada.creditos_minimos ?? 0, "Los créditos mínimos", 0, 250),
+    creditos_minimos: entero(
+      entrada.creditos_minimos ?? CREDITOS_MINIMOS_PRACTICAS,
+      "Los créditos mínimos",
+      CREDITOS_MINIMOS_PRACTICAS,
+      250
+    ),
     modalidad,
     vacantes: entero(entrada.vacantes, "Las vacantes", 1, 100),
     fecha_limite: validarFecha(entrada.fecha_limite, hoy)

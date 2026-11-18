@@ -13,6 +13,7 @@ const base = {
   listarMisPostulaciones: async () => ({ items: [] }),
   retirarPostulacion: async () => ({ estado: "retirada" }),
   listarPostulantes: async () => ({ items: [] }),
+  asignarAsesor: async (u, id, b) => ({ postulacion: { id, asesorNombre: b.nombre, por: u } }),
   decidirPostulacion: { aceptar: async () => ({ ofertaCerrada: true }), rechazar: async () => ({}) }
 };
 
@@ -62,4 +63,16 @@ test("coordinación pasa la consulta (query) al caso de uso", async () => {
   await m.coordinacion({ usuario: { id: "5" }, query: { estado: "aceptada", page: "2" } }, r);
   assert.deepEqual(recibido, ["5", { estado: "aceptada", page: "2" }]);
   assert.equal(r.codigo, 200);
+});
+
+test("asesor responde 200 y pasa usuario, id y cuerpo", async () => {
+  const r = res();
+  await crearManejadores(base).asesor({ usuario: { id: "5" }, params: { id: "3" }, body: { nombre: "Dr. Pérez" } }, r);
+  assert.equal(r.codigo, 200);
+  assert.deepEqual(r.cuerpo.postulacion, { id: "3", asesorNombre: "Dr. Pérez", por: "5" });
+
+  const e = res();
+  await crearManejadores({ ...base, asignarAsesor: async () => { throw new AccesoDenegadoError(); } })
+    .asesor({ usuario: { id: "1" }, params: { id: "3" }, body: {} }, e);
+  assert.equal(e.codigo, 403);
 });

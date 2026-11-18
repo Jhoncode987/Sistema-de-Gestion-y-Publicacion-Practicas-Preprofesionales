@@ -8,6 +8,7 @@ const {
   crearListarPostulantes,
   crearDecidirPostulacion,
   crearFinalizarPractica,
+  crearAsignarAsesor,
   crearVerPostulacionesCoordinacion
 } = require("./postulaciones.cjs");
 const { evaluarElegibilidad, normalizar } = require("./elegibilidad.cjs");
@@ -20,7 +21,8 @@ const OFERTA = {
 };
 const ESTUDIANTE = {
   id: "1", rol: "estudiante", nombre: "Ana", codigoEstudiante: "20180123",
-  correo: "ana@unsch.edu.pe", carrera: "Ingenieria  de sistemas", ciclo: 8, creditosAprobados: 150
+  correo: "ana@unsch.edu.pe", carrera: "Ingenieria  de sistemas", ciclo: 8, creditosAprobados: 200,
+  creditosVerificados: true, tieneReporte: true
 };
 
 function montar({ perfiles = {}, oferta = OFERTA } = {}) {
@@ -65,6 +67,11 @@ function montar({ perfiles = {}, oferta = OFERTA } = {}) {
       if (f) f.estado = "finalizada";
       return f ? { ...f } : null;
     },
+    async asignarAsesor({ id, nombre }) {
+      const f = filas.find((x) => x.id === id && x.estado === "aceptada");
+      if (f) f.asesorNombre = nombre;
+      return f ? { ...f } : null;
+    },
     async rechazar({ id, motivo }) {
       const f = filas.find((x) => x.id === id && x.estado === "pendiente");
       if (f) { f.estado = "rechazada"; f.motivo = motivo; }
@@ -104,7 +111,7 @@ function montar({ perfiles = {}, oferta = OFERTA } = {}) {
     ofertas
   };
 
-  return { dep, filas, cerradas, postular: crearPostular(dep), decidir: crearDecidirPostulacion(dep) };
+  return { dep, filas, cerradas, postular: crearPostular(dep), asesor: crearAsignarAsesor(dep), decidir: crearDecidirPostulacion(dep) };
 }
 
 const falla = (promesa, Clase, codigo) =>
@@ -115,12 +122,38 @@ test("normalizar ignora tildes, mayúsculas y espacios repetidos", () => {
 });
 
 test("elegibilidad: cumple todo, o lista cada requisito incumplido", () => {
-  const ok = { carrera: "ingenieria de sistemas", ciclo: 6, creditosAprobados: 100 };
+  const ok = { carrera: "ingenieria de sistemas", ciclo: 6, creditosAprobados: 160 };
   assert.deepEqual(evaluarElegibilidad(ok, OFERTA), []);
   const mal = { carrera: "Derecho", ciclo: 3, creditosAprobados: 10 };
   assert.equal(evaluarElegibilidad(mal, OFERTA).length, 3);
   assert.equal(evaluarElegibilidad({ ...ok, ciclo: 5 }, OFERTA).length, 1);
-  assert.equal(evaluarElegibilidad({ ...ok, creditosAprobados: 99 }, OFERTA).length, 1);
+  assert.equal(evaluarElegibilidad({ ...ok, creditosAprobados: 159 }, OFERTA).length, 1);
+});
+
+test("elegibilidad: la norma exige 160 créditos aunque la oferta pida menos; la oferta puede pedir más", () => {
+  const ok = { carrera: "ingenieria de sistemas", ciclo: 6, creditosAprobados: 160 };
+  const pocos = { ...ok, creditosAprobados: 120 };
+  const exigente = { ...OFERTA, creditos_minimos: 190 };
+  const sinMinimo = { ...OFERTA, creditos_minimos: 0 };
+
+  assert.deepEqual(evaluarElegibilidad(ok, sinMinimo), []);
+  assert.match(evaluarElegibilidad(pocos, sinMinimo)[0], /160 créditos/);
+  assert.match(evaluarElegibilidad(ok, exigente)[0], /190 créditos/);
+  assert.deepEqual(evaluarElegibilidad({ ...ok, creditosAprobados: 190 }, exigente), []);
+});
+
+test("sin créditos verificados no se puede postular, con mensaje según tenga o no reporte", async () => {
+  const sinReporte = montar({ perfiles: { 1: { ...ESTUDIANTE, creditosVerificados: false, tieneReporte: false } } });
+  await assert.rejects(
+    sinReporte.postular("1", { ofertaId: "10" }),
+    (e) => e instanceof ReglaDeNegocioError && e.codigo === "CREDITOS_NO_VERIFICADOS" && /Sube tu reporte/.test(e.message)
+  );
+  const enRevision = montar({ perfiles: { 1: { ...ESTUDIANTE, creditosVerificados: false } } });
+  await assert.rejects(
+    enRevision.postular("1", { ofertaId: "10" }),
+    (e) => e.codigo === "CREDITOS_NO_VERIFICADOS" && /revisando/.test(e.message)
+  );
+  assert.equal(enRevision.filas.length, 0);
 });
 
 test("un estudiante elegible postula y queda pendiente", async () => {
@@ -315,4 +348,27 @@ test("coordinación: solo coordinador y parámetros válidos", async () => {
   for (const c of [{ estado: "inventado" }, { page: "0" }, { page: "x" }, { page: "1.5" }]) {
     await assert.rejects(ver("5", c), (e) => e.name === "DatosInvalidosError");
   }
+});
+
+test("asesor: solo el coordinador, solo sobre prácticas aceptadas, nombre válido", async () => {
+  const m = montar({ perfiles: { 5: { id: "5", rol: "coordinador", nombre: "Coord" } } });
+  const a = await m.postular("1", { ofertaId: "10" });
+  const b = await m.postular("2", { ofertaId: "10" });
+
+  await falla(m.asesor("9", a.id, { nombre: "Dr. Pérez" }), AccesoDenegadoError);
+  await falla(m.asesor("1", a.id, { nombre: "Dr. Pérez" }), AccesoDenegadoError);
+  await falla(m.asesor("5", a.id, { nombre: "Dr. Pérez" }), ReglaDeNegocioError, "TRANSICION_INVALIDA");
+  await falla(m.asesor("5", "999", { nombre: "Dr. Pérez" }), NoEncontradoError);
+  await falla(m.asesor("5", "abc", { nombre: "Dr. Pérez" }), NoEncontradoError);
+
+  await m.decidir.aceptar("9", a.id);
+
+  for (const nombre of [undefined, "", "  ab ", 7, "x".repeat(121)]) {
+    await assert.rejects(m.asesor("5", a.id, { nombre }), (e) => e.name === "DatosInvalidosError");
+  }
+
+  const r = await m.asesor("5", a.id, { nombre: "  Dr.   Juan   Pérez " });
+  assert.equal(r.postulacion.asesorNombre, "Dr. Juan Pérez");
+  assert.equal((await m.asesor("5", a.id, { nombre: "Dra. Rosa Quispe" })).postulacion.asesorNombre, "Dra. Rosa Quispe");
+  await falla(m.asesor("5", b.id, { nombre: "Dr. Pérez" }), ReglaDeNegocioError, "TRANSICION_INVALIDA");
 });

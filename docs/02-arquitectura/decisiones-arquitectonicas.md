@@ -105,6 +105,22 @@ Este documento registra las decisiones principales para el Sistema Web para la G
 - **Consecuencias:** el perfil académico (carrera, ciclo, créditos) es declarado por el estudiante hasta que exista la integración con SIGA (ADR-004), así que no es verificable todavía. Una postulación retirada no se puede repetir (la restricción única la conserva como historial). El cierre de la oferta ocurre justo después de confirmar la última aceptación, en una operación separada: si fallara, la oferta seguiría `publicada` pero ya sin cupo, y ninguna aceptación adicional prosperaría.
 - **Criterio de validación:** pruebas con PostgreSQL real: 5 aceptaciones simultáneas con 2 vacantes aplican exactamente 2; 5 postulaciones simultáneas del mismo estudiante crean 1; dos aceptaciones simultáneas del mismo estudiante en ofertas distintas aplican solo 1.
 
+## ADR-010 — Norma de la Escuela: piso de 160 créditos y docente asesor
+
+- **Estado:** aceptado.
+- **Contexto:** las normas académicas generales del currículo de Ingeniería de Sistemas (UNSCH) exigen haber acumulado un mínimo de 160 créditos para realizar prácticas pre-profesionales y establecen que las monitorea un docente asesor designado por la dirección de escuela. El sistema dejaba el mínimo de créditos a criterio de cada empresa y no registraba al asesor.
+- **Decisión:** el mínimo de 160 créditos es una constante institucional (`backend/src/compartido/normativa.cjs`). Postulaciones exige el mayor entre ese piso y lo que pida la oferta; Ofertas rechaza créditos mínimos menores a 160 (160 por defecto) y una restricción en la base de datos lo garantiza (migración 010, que también sube las ofertas existentes). La coordinación asigna el docente asesor a cada práctica aceptada (migración 011, `PUT /postulaciones/{id}/asesor`); se guarda como nombre porque los docentes aún no son usuarios del sistema, y se muestra al estudiante, a la empresa y a la coordinación.
+- **Consecuencias:** la elegibilidad cumple el reglamento aunque la empresa no lo recuerde. Como el perfil académico sigue siendo declarado, la verificación real de créditos depende de la futura integración con SIGA. Asignar docentes como usuarios con su propio acceso queda como trabajo futuro.
+- **Criterio de validación:** pruebas de elegibilidad con ofertas que piden menos o más de 160 créditos, validación de la oferta y pruebas del caso de uso de asesor (rol, estado y nombre).
+
+## ADR-011 — Verificación manual de créditos con reporte de notas
+
+- **Estado:** aceptado.
+- **Contexto:** la norma exige 160 créditos, pero el estudiante los declara y no hay forma de comprobarlos mientras no exista integración con SIGA. El intranet permite exportar el reporte de notas (cursos aprobados con sus créditos), sin el total, que hay que sumar.
+- **Decisión:** el estudiante sube su reporte de notas en PDF (máximo 2 MB, guardado en la base de datos, un reporte vigente por estudiante). La coordinación lo abre, suma los créditos y registra el total (migración 012: quién verificó y cuándo). Postulaciones solo permite postular con créditos verificados (`CREDITOS_NO_VERIFICADOS`). Si el estudiante modifica sus créditos declarados, la verificación se pierde. El PDF solo lo ve el coordinador.
+- **Consecuencias:** la elegibilidad por créditos descansa en una revisión humana auditable. No requiere almacenamiento externo, pero los PDF ocupan espacio en la base (límite de 2 MB cada uno). Los estudiantes existentes quedan sin verificar. La integración con SIGA reemplazará este paso.
+- **Criterio de validación:** pruebas del caso de uso (rol, PDF válido, tamaño, total entre 0 y 250, reporte obligatorio), de la regla al postular y comprobación de las consultas en PostgreSQL.
+
 ## Resumen de trazabilidad
 
 | Decisión | Drivers principales | Resultado esperado |
@@ -118,3 +134,5 @@ Este documento registra las decisiones principales para el Sistema Web para la G
 | ADR-007 Bumeran como referencia funcional | RF01, RC02 | No se integra con portales externos; las ofertas se validan en el sistema. |
 | ADR-008 Autenticación con hash y token firmado | DA05 | Rutas protegidas por rol; contraseñas nunca en claro. |
 | ADR-009 Postulaciones con candado por oferta | RC02, DA05 | Sin duplicados ni vacantes sobrepasadas; cierre automático al llenarse. |
+| ADR-010 Piso de 160 créditos y docente asesor | RC02 | Elegibilidad alineada al reglamento de la Escuela; práctica con asesor designado. |
+| ADR-011 Verificación manual de créditos | RC02, DA05 | Los créditos que cuentan fueron revisados por la coordinación. |
