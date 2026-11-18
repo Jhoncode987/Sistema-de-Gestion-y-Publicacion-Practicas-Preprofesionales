@@ -1,6 +1,6 @@
 # Especificaciones SDD de las funcionalidades implementadas
 
-Sprint 2, actividad 3. Cada especificación se escribió antes de dar por terminada la funcionalidad y define qué debe cumplir (criterios de aceptación) y qué trabajo técnico la implementa. Los criterios usan el formato *Dado / Cuando / Entonces* y cada uno tiene al menos una prueba automática (columna de verificación) o, si depende de un recorrido real, se indica como prueba manual.
+Sprint 2, actividad 3. Cada especificación se escribió antes de dar por terminada la funcionalidad y define qué debe cumplir (criterios de aceptación) y qué trabajo técnico la implementa. Los criterios usan el formato *Dado / Cuando / Entonces* y la columna de verificación indica si lo comprueba una prueba automática, una medición con k6 o una comprobación manual. Lo que no está automatizado se dice expresamente.
 
 Funcionalidades del Sprint 1 que **no** se implementaron en esta versión: notificaciones (RF07, HU-07), registro de auditoría completo (RF09; solo se guarda quién decidió y cuándo), reportes exportables (RF10, HU-09), convenios (HU-06), edición de ofertas y el rol Administrador. Quedan como trabajo futuro en [estado-y-trabajo-futuro.md](../02-arquitectura/estado-y-trabajo-futuro.md).
 
@@ -50,9 +50,9 @@ Las rutas se describen en [`backend/openapi.yaml`](../../backend/openapi.yaml). 
 |---|---|---|
 | CA-02.1 | Dado un estudiante, cuando sube un PDF de hasta 2 MB, entonces se guarda como su reporte vigente. | `verificacion-creditos.test.cjs` |
 | CA-02.2 | Dado un archivo que no es PDF, vacío o mayor de 2 MB, cuando se sube, entonces recibe 400 y no se guarda. | `verificacion-creditos.test.cjs` |
-| CA-02.3 | Dado un coordinador y un estudiante con reporte, cuando registra un total de 0 a 250, entonces el estudiante queda verificado con quién y cuándo. | `verificacion-creditos.test.cjs`; prueba en PostgreSQL (consulta de verificación) |
+| CA-02.3 | Dado un coordinador y un estudiante con reporte, cuando registra un total de 0 a 250, entonces el estudiante queda verificado con quién y cuándo. | `verificacion-creditos.test.cjs`; la consulta SQL se comprobó a mano en PostgreSQL |
 | CA-02.4 | Dado un estudiante sin reporte, cuando el coordinador intenta verificarlo, entonces recibe 404. | `verificacion-creditos.test.cjs` |
-| CA-02.5 | Dado un estudiante verificado, cuando cambia sus créditos declarados, entonces pierde la verificación; si guarda los mismos, la conserva. | prueba en PostgreSQL (consulta de perfil) |
+| CA-02.5 | Dado un estudiante verificado, cuando cambia sus créditos declarados, entonces pierde la verificación; si guarda los mismos, la conserva. | comprobado a mano en PostgreSQL (consulta de perfil); sin prueba automática |
 | CA-02.6 | Dado un estudiante o empresa, cuando intenta verificar créditos o descargar un reporte ajeno, entonces recibe 403 sin datos. | `verificacion-creditos.test.cjs`, matriz EQ-03 (I25, I26, I37, I38, I46) |
 | CA-02.7 | Dado un estudiante con créditos verificados menores a 160, cuando abre el portal, entonces ve cuántos le faltan. | prueba manual |
 
@@ -116,7 +116,7 @@ Las rutas se describen en [`backend/openapi.yaml`](../../backend/openapi.yaml). 
 |---|---|---|
 | CA-05.1 | Dada una empresa pendiente, cuando el coordinador la aprueba o la rechaza (con motivo de 5 a 500 caracteres), entonces cambia de estado y queda quién y cuándo. | `revision.test.cjs` |
 | CA-05.2 | Dada una oferta de una empresa no aprobada o vencida, cuando se intenta publicar, entonces recibe 409 `EMPRESA_NO_APROBADA` u `OFERTA_VENCIDA`. | `revision.test.cjs` |
-| CA-05.3 | Dadas dos decisiones simultáneas sobre la misma entidad, cuando ocurren, entonces una recibe 409 `TRANSICION_INVALIDA`. | `revision.test.cjs` |
+| CA-05.3 | Dadas dos decisiones simultáneas sobre la misma entidad, cuando ocurren, entonces una recibe 409 `TRANSICION_INVALIDA`. | `revision.test.cjs` cubre "ya revisada → 409"; la atomicidad ante decisiones simultáneas la da la actualización SQL condicionada por estado (comprobada a mano, sin prueba automática) |
 | CA-05.4 | Dada una oferta publicada, cuando el coordinador la cierra con motivo, entonces pasa a `cerrada` y la empresa ve el motivo. | `revision.test.cjs` |
 | CA-05.5 | Dada una empresa o un estudiante, cuando intenta decidir, entonces recibe 403 (no hay autoaprobación). | matriz EQ-03 (I20, I21, I35, I36) |
 
@@ -153,7 +153,7 @@ Las rutas se describen en [`backend/openapi.yaml`](../../backend/openapi.yaml). 
 
 | ID | Criterio | Verificación |
 |---|---|---|
-| CA-07.1 | Dada una oferta con N vacantes y más de N aceptaciones simultáneas, cuando se aceptan, entonces se aceptan exactamente N. | `postulaciones.test.cjs`; prueba de concurrencia en PostgreSQL (5 aceptaciones, 2 vacantes → 2) |
+| CA-07.1 | Dada una oferta con N vacantes y más de N aceptaciones simultáneas, cuando se aceptan, entonces se aceptan exactamente N. | `postulaciones.test.cjs` cubre el tope con un repositorio en memoria; la concurrencia real se comprobó a mano en PostgreSQL (5 aceptaciones simultáneas con 2 vacantes dieron 2) y no está automatizada |
 | CA-07.2 | Dadas todas las vacantes cubiertas, cuando se acepta la última, entonces la oferta se cierra y las pendientes se rechazan con motivo. | `postulaciones.test.cjs` |
 | CA-07.3 | Dado un estudiante aceptado, cuando otra empresa intenta aceptarlo, entonces recibe 409 `ESTUDIANTE_YA_ACEPTADO`; sus otras pendientes quedan retiradas. | `postulaciones.test.cjs` |
 | CA-07.4 | Dada una empresa que no es dueña de la oferta, cuando intenta ver postulantes, aceptar o finalizar, entonces recibe 403 o 404 sin datos. | matriz EQ-03 (I42–I44) |
