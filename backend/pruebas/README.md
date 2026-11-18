@@ -71,3 +71,27 @@ Node y PostgreSQL. Los resultados se guardan en `pruebas/k6/resultados/`.
 | `eq02-postulacion.js` | p95 ≤ 3 s, fallos < 1 % con solicitudes válidas |
 | `eq02-rafaga.js` | exactamente 1 respuesta 201, 24 respuestas 409, 0 errores 5xx, 1 fila |
 | `estres-2000.js` | no tiene umbral de aceptación: muestra dónde se degrada |
+
+## Análisis de la base de datos
+
+```powershell
+psql -U postgres -d practicas_carga -f backend\pruebas\analisis-bd.sql > backend\pruebas\k6\resultados\analisis-bd.txt
+```
+
+Muestra el plan y el tiempo (`EXPLAIN ANALYZE`) de las consultas reales. La interpretación está en `docs/02-arquitectura/analisis-base-de-datos-y-cache.md`.
+
+## Matriz de seguridad (EQ-03)
+
+Necesita un coordinador en la base de carga y el backend en marcha (ver arriba):
+
+```powershell
+$env:COORDINADOR_CLAVE = "una-clave-larga"
+$env:DATABASE_URL = "postgresql://postgres:TU_CLAVE@localhost:5432/practicas_carga"
+node scripts\crear-coordinador.cjs coord@unsch.edu.pe "Coordinador Pruebas"
+
+$env:COORD_CORREO = "coord@unsch.edu.pe"
+$env:COORD_CLAVE = "una-clave-larga"
+node pruebas\seguridad\matriz-seguridad.cjs
+```
+
+Crea sus propias cuentas (con sufijo único, se puede repetir), ejecuta 25 controles autorizados y 50 accesos no autorizados, y comprueba que los accesos denegados no cambiaron ningún dato. Resultado en `pruebas/k6/resultados/eq03-matriz.json` y `.md`.
