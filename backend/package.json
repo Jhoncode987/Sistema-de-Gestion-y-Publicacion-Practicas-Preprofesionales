@@ -6,7 +6,9 @@
   "scripts": {
     "start": "node server.cjs",
     "dev": "node --watch server.cjs",
-    "test": "node --test"
+    "test": "jest",
+    "test:cobertura": "jest --coverage",
+    "test:node": "node --test"
   },
   "keywords": [],
   "author": "",

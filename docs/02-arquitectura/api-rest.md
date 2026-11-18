@@ -84,4 +84,4 @@ El backend usa Node.js con Express 5 (ADR-006). Estado de implementación:
 - Los errores actuales son `{ codigo, mensaje }` con 400 (`PARAMETROS_INVALIDOS`) o 503 (`SERVICIO_NO_DISPONIBLE`); falta `correlationId` y los códigos 401, 403, 404, 409 y 422, que dependen de funciones aún no implementadas.
 - RF03 se cumple de forma parcial: el estudiante elige su carrera y ciclo en los filtros. Ya existe autenticación, pero la carrera y el ciclo todavía no forman parte del perfil: cuando se integre la elegibilidad con SIGA (RC02), saldrán de la identidad y no de la URL.
 
-Pendientes: OpenAPI y pruebas. Un cambio de adaptador conserva estos contratos mientras no cambie el comportamiento del negocio (AC03).
+La especificación OpenAPI 3 está en `backend/openapi.yaml` y se muestra con Swagger UI en `/api-docs` del backend; una prueba automática verifica que toda ruta implementada esté documentada. Un cambio de adaptador conserva estos contratos mientras no cambie el comportamiento del negocio (AC03).

@@ -57,7 +57,10 @@ La decisión está registrada en el [ADR-006](docs/02-arquitectura/decisiones-ar
    cp .env.example .env     # completa los datos de tu PostgreSQL y JWT_SECRET
    npm install
    npm start          # o npm run dev para reiniciar al guardar
-   npm test           # pruebas automáticas (no necesitan la base de datos)
+   npm install        # instala también Jest (herramienta de pruebas)
+   npm test           # pruebas automáticas con Jest (no necesitan la base de datos)
+   npm run test:cobertura   # igual, con reporte de cobertura en backend/coverage
+   # Documentación de la API (Swagger UI): http://localhost:3000/api-docs
    ```
    Comprueba que responde en `http://localhost:3000/api/v1/salud`.
 
@@ -79,4 +82,4 @@ La decisión está registrada en el [ADR-006](docs/02-arquitectura/decisiones-ar
    Abre `http://localhost:5173`. Vite redirige `/api` al backend.
 
 ## Estado
-Los documentos describen una propuesta arquitectónica. Los diagramas de arquitectura inicial y estilo se conservan con los siete módulos explicados. Se priorizan tres atributos (rendimiento, seguridad y mantenibilidad) y pruebas con 20 y 25 usuarios simultáneos. Hay una primera implementación ejecutable: el listado de ofertas con filtros y paginación, el registro e inicio de sesión con roles y el panel de empresa para publicar ofertas y el panel del coordinador para validarlas (backend en Express y portal en React, sobre PostgreSQL). Las demás funciones, las pruebas automatizadas y los resultados de prueba siguen pendientes.
+Los documentos describen una propuesta arquitectónica. Los diagramas de arquitectura inicial y estilo se conservan con los siete módulos explicados. Se priorizan tres atributos (rendimiento, seguridad y mantenibilidad) y pruebas con 20 y 25 usuarios simultáneos. Hay una primera implementación ejecutable: el listado de ofertas con filtros y paginación, el registro e inicio de sesión con roles y el panel de empresa para publicar ofertas y el panel del coordinador para validarlas (backend en Express y portal en React, sobre PostgreSQL). Las pruebas automatizadas corren con Jest y en GitHub Actions; las pruebas de carga con k6 están en `backend/pruebas`. Los resultados de prueba se registran en la carpeta de evidencias a medida que se ejecutan.

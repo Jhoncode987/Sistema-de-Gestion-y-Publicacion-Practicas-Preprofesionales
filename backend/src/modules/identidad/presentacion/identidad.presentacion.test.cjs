@@ -1,4 +1,4 @@
-const test = require("node:test");
+const test = require("../../../compartido/pruebas.cjs");
 const assert = require("node:assert/strict");
 
 const { crearAutenticar, requerirRol } = require("./autenticacion.middleware.cjs");
