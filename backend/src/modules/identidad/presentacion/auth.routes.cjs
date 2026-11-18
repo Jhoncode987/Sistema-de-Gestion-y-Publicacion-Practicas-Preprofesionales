@@ -135,7 +135,8 @@ function crearAuthRouter({ autenticar, soloEstudiante, soloCoordinador, ...casos
   router.post("/registro", manejadores.registro);
   router.post("/login", manejadores.login);
   router.get("/yo", autenticar, manejadores.yo);
-  router.put("/perfil-academico", autenticar, manejadores.perfilAcademico);
+  // Se autoriza el rol antes de validar el cuerpo: una empresa recibe 403, no 400.
+  router.put("/perfil-academico", autenticar, soloEstudiante, manejadores.perfilAcademico);
 
   router.put(
     "/reporte-notas",

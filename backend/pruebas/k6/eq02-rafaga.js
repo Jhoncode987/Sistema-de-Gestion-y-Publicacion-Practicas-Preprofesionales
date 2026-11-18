@@ -12,6 +12,8 @@ const c201 = new Counter("respuestas_201");
 const c409 = new Counter("respuestas_409");
 const c5xx = new Counter("respuestas_5xx");
 
+let inesperadas = 0;
+
 export const options = {
   scenarios: {
     rafaga: { executor: "shared-iterations", vus: 25, iterations: 25, maxDuration: "1m" }
@@ -35,6 +37,12 @@ export default function () {
   if (r.status === 201) c201.add(1);
   else if (r.status === 409) c409.add(1);
   else if (r.status >= 500) c5xx.add(1);
+
+  // Diagnóstico: si llega algo distinto de 201/409, se muestra el código y el cuerpo
+  // (solo las 3 primeras veces para no llenar la consola).
+  if (r.status !== 201 && r.status !== 409 && r.status < 500 && ++inesperadas <= 3) {
+    console.warn(`Respuesta inesperada ${r.status}: ${String(r.body).slice(0, 300)}`);
+  }
 
   check(r, { "201 o 409": (x) => x.status === 201 || x.status === 409 });
 }

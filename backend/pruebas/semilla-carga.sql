@@ -5,6 +5,9 @@
 -- Las ofertas con id múltiplo de 5 son de Derecho: las postulaciones sembradas van
 -- solo a esas, para no chocar con las que hacen los scripts de k6.
 \set ON_ERROR_STOP on
+-- En Windows psql usa la codificacion de la consola y guarda mal los acentos:
+-- se fuerza UTF-8 para que "Ingenieria" quede igual que lo que envia la aplicacion.
+\encoding UTF8
 
 DO $$
 BEGIN

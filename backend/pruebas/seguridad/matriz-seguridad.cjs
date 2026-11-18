@@ -166,7 +166,7 @@ async function principal() {
   await V("V04", "Estudiante actualiza su perfil académico", "estA", "PUT", "/auth/perfil-academico",
     { carrera: "Ingeniería de Sistemas", ciclo: 8, creditosAprobados: 200 }, 200);
   const pa = await V("V05", "Estudiante A postula a la oferta de A", "estA", "POST", "/postulaciones", { ofertaId: ids.ofertaA }, 201);
-  estado.pA = String(pa.json?.postulacion?.id);
+  estado.pA = String(pa.json?.id);
   await V("V06", "Estudiante lista sus postulaciones", "estA", "GET", "/postulaciones/mias", undefined, 200);
   await V("V07", "Empresa A lista sus ofertas", "empA", "GET", "/ofertas/mias", undefined, 200);
   await V("V08", "Empresa A ve los postulantes de su oferta", "empA", "GET", `/postulaciones/oferta/${ids.ofertaA}`, undefined, 200);
@@ -177,13 +177,13 @@ async function principal() {
   await V("V13", "Empresa A acepta a su postulante", "empA", "POST", () => `/postulaciones/${estado.pA}/aceptar`, undefined, 200);
   await V("V14", "Coordinador asigna docente asesor", "coord", "PUT", () => `/postulaciones/${estado.pA}/asesor`, { nombre: "Dr. Juan Pérez" }, 200);
   const pb = await V("V15", "Estudiante B postula a la oferta de A", "estB", "POST", "/postulaciones", { ofertaId: ids.ofertaA }, 201);
-  estado.pB = String(pb.json?.postulacion?.id);
+  estado.pB = String(pb.json?.id);
   await V("V16", "Empresa A rechaza a su postulante", "empA", "POST", () => `/postulaciones/${estado.pB}/rechazar`, { motivo: "No cumple" }, 200);
   const pb2 = await V("V17", "Estudiante B postula a la oferta de B", "estB", "POST", "/postulaciones", { ofertaId: ids.ofertaB }, 201);
-  estado.pB2 = String(pb2.json?.postulacion?.id);
+  estado.pB2 = String(pb2.json?.id);
   await V("V18", "Estudiante B retira su postulación", "estB", "POST", () => `/postulaciones/${estado.pB2}/retirar`, undefined, 200);
   const nueva = await V("V19", "Empresa B publica otra oferta", "empB", "POST", "/ofertas", {
-    titulo: "Oferta B2", descripcion: "Segunda oferta", carrera: "Ingeniería de Sistemas", ciclo_minimo: 1,
+    titulo: "Oferta B2", descripcion: "Segunda oferta para la matriz de seguridad", carrera: "Ingeniería de Sistemas", ciclo_minimo: 1,
     creditos_minimos: 160, modalidad: "presencial", vacantes: 2,
     fecha_limite: new Date(Date.now() + 20 * 86400000).toISOString().slice(0, 10)
   }, 201);

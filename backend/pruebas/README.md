@@ -16,6 +16,7 @@ psql -U postgres -c "CREATE DATABASE practicas_carga"
 Get-ChildItem backend\migrations\*.sql | Sort-Object Name | ForEach-Object { psql -U postgres -d practicas_carga -f $_.FullName }
 
 # 2. Semilla: 100 empresas, 1 000 ofertas, 2 000 estudiantes, 5 000 postulaciones
+$env:PGCLIENTENCODING = "UTF8"   # sin esto, Windows guarda mal los acentos de la semilla
 psql -U postgres -d practicas_carga -f backend\pruebas\semilla-carga.sql
 
 # 3. Ids de los estudiantes y sus tokens de sesión (válidos 8 horas)
