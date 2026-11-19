@@ -65,6 +65,7 @@ const {
   crearVerificarCreditos
 } = require("./src/modules/identidad/aplicacion/verificacion-creditos.cjs");
 const { crearObtenerPerfil, crearObtenerPerfiles } = require("./src/modules/identidad/aplicacion/obtener-perfil.cjs");
+const { crearDocumentacionApi } = require("./src/compartido/documentacion-api.cjs");
 const { crearAutenticar, requerirRol } = require("./src/modules/identidad/presentacion/autenticacion.middleware.cjs");
 const { crearAuthRouter } = require("./src/modules/identidad/presentacion/auth.routes.cjs");
 
@@ -141,6 +142,12 @@ app.get("/api/v1/salud/db", async (req, res) => {
 const ofertasRepository = crearOfertasRepository(pool);
 const listarOfertas = crearListarOfertas(ofertasRepository);
 const listarFiltros = crearListarFiltros(ofertasRepository);
+
+// Documentación OpenAPI/Swagger de la API (pública: solo describe las rutas).
+const documentacionApi = crearDocumentacionApi();
+app.get("/api-docs", (req, res) => res.redirect("/api-docs/"));
+app.get("/api-docs/", documentacionApi.pagina);
+app.get("/api-docs/openapi.yaml", documentacionApi.especificacion);
 
 // Conectar las piezas del módulo Identidad.
 const usuariosRepository = crearUsuariosRepository(pool);
