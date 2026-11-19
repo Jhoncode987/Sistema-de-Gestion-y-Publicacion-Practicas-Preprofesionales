@@ -20,7 +20,7 @@ $env:PGCLIENTENCODING = "UTF8"   # sin esto, Windows guarda mal los acentos de l
 psql -U postgres -d practicas_carga -f backend\pruebas\semilla-carga.sql
 
 # 3. Ids de los estudiantes y sus tokens de sesión (válidos 8 horas)
-psql -U postgres -d practicas_carga -At -c "SELECT id FROM identidad.usuarios WHERE rol='estudiante' ORDER BY id" | Out-File -Encoding ascii backend\pruebas\k6\datos\ids-estudiantes.txt
+psql -U postgres -d practicas_carga -At -c "SELECT id FROM identidad.usuarios WHERE rol='estudiante' AND correo LIKE '%@carga.test' ORDER BY id" | Out-File -Encoding ascii backend\pruebas\k6\datos\ids-estudiantes.txt
 cd backend
 node pruebas\generar-tokens.cjs
 ```
