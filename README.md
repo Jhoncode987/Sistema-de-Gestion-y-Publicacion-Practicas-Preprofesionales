@@ -22,6 +22,9 @@ La documentación del proyecto se organiza en `docs/` y los ejemplos tecnológic
 - [Enfoque de Clean Architecture](docs/02-arquitectura/enfoque/enfoque-arquitectonico.md)
 - [Decisiones arquitectónicas (ADR)](docs/02-arquitectura/decisiones-arquitectonicas.md)
 - [Diagramas C4](docs/02-arquitectura/diagramas-c4/diagramas-c4.md)
+- [Despliegue e integración](docs/02-arquitectura/despliegue.md)
+- [Especificaciones SDD](docs/04-especificaciones-sdd/especificaciones.md)
+- [Informe de validación](docs/05-validacion/informe-validacion.md)
 - [Diseño interno](docs/03-diseno-de-software/diseno-interno/01-diseno-interno.md)
 - [Ejemplos tecnológicos de Clean Architecture](tecnologia/clean-architecture/README.md)
 
@@ -81,5 +84,18 @@ La decisión está registrada en el [ADR-006](docs/02-arquitectura/decisiones-ar
    ```
    Abre `http://localhost:5173`. Vite redirige `/api` al backend.
 
+## Despliegue
+El sistema está desplegado y en funcionamiento:
+
+| Capa | Plataforma |
+|---|---|
+| Portal web (React + Vite) | Vercel |
+| API REST (Node.js + Express) | Render |
+| Base de datos (PostgreSQL) | Neon |
+
+Cada push a `main` vuelve a desplegar Vercel y Render. La documentación de la API está en `/api-docs` del backend. Los diagramas de despliegue, las variables de entorno, el flujo de integración continua y el uso de un dominio propio con Cloudflare están en [Despliegue e integración](docs/02-arquitectura/despliegue.md).
+
 ## Estado
-Los documentos describen una propuesta arquitectónica. Los diagramas de arquitectura inicial y estilo se conservan con los siete módulos explicados. Se priorizan tres atributos (rendimiento, seguridad y mantenibilidad) y pruebas con 20 y 25 usuarios simultáneos. Hay una primera implementación ejecutable: el listado de ofertas con filtros y paginación, el registro e inicio de sesión con roles y el panel de empresa para publicar ofertas y el panel del coordinador para validarlas (backend en Express y portal en React, sobre PostgreSQL). Las pruebas automatizadas corren con Jest y en GitHub Actions; las pruebas de carga con k6 están en `backend/pruebas`. Los resultados de prueba se registran en la carpeta de evidencias a medida que se ejecutan.
+Sprint 3: el sistema está implementado, integrado y desplegado. Están en funcionamiento el registro e inicio de sesión con tres roles (estudiante, empresa y coordinador), la publicación y aprobación de ofertas, las postulaciones con elegibilidad (carrera, ciclo y 160 créditos mínimos verificados por la coordinación), la aceptación y finalización de prácticas y la asignación del docente asesor. Siguen sin implementar los convenios, las notificaciones, la integración con SIGA y los reportes; están descritos en [Estado y trabajo futuro](docs/02-arquitectura/estado-y-trabajo-futuro.md).
+
+Las pruebas automáticas (100 pruebas con Jest) corren en GitHub Actions en cada push. Las pruebas de los atributos de calidad (rendimiento con k6 hasta 2 000 usuarios, seguridad y mantenibilidad) están en `backend/pruebas`, y sus resultados en el [informe de validación](docs/05-validacion/informe-validacion.md). Las especificaciones están en [SDD](docs/04-especificaciones-sdd/especificaciones.md).

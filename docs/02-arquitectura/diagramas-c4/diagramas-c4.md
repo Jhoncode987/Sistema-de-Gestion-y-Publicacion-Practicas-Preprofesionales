@@ -1,6 +1,6 @@
 # Diagramas C4 — Sistema de Prácticas Preprofesionales UNSCH
 
-**Estado:** propuesta arquitectónica para el Sprint 01. Los diagramas describen el diseño previsto, no una implementación ya desplegada.
+**Estado:** diseño del Sprint 1, actualizado en el Sprint 3. Los niveles C1 a C4 describen el diseño; el sistema está implementado y desplegado, y el [diagrama de despliegue](#despliegue--diagrama-de-despliegue) muestra cómo. Lo que no está implementado (SIGA, convenios, notificaciones, reportes) se indica como previsto.
 
 ## Convenciones y trazabilidad
 
@@ -60,9 +60,9 @@ flowchart TB
     Office["Oficina de Prácticas"]
 
     subgraph System["Sistema Web de Prácticas Preprofesionales UNSCH"]
-        Web["Portal web / React (propuesto) / Interfaz de usuario"]
+        Web["Portal web / React 19 + Vite / Interfaz de usuario"]
         API["Backend / API REST / Monolito modular / Clean Architecture"]
-        DB[("Base de datos relacional / PostgreSQL (propuesto)")]
+        DB[("Base de datos relacional / PostgreSQL / un esquema por módulo")]
     end
 
     SIGA["SIGA / sistema académico / (integración sujeta a autorización)"]
@@ -90,9 +90,9 @@ Las reglas de aprobación del coordinador, verificación académica y convenio s
 
 | Contenedor | Responsabilidad | Origen / justificación |
 |---|---|---|
-| Portal web React | Interfaz para cada tipo de usuario; presenta ofertas, formularios y estados. | DA01, DA05 y RF01–RF10. React con Vite, confirmado en el ADR-006; hoy solo implementa el listado de ofertas. |
+| Portal web React | Interfaz para cada tipo de usuario; presenta ofertas, formularios y estados. | DA01, DA05 y RF01–RF10. React con Vite, confirmado en el ADR-006. Implementa el portal de los tres roles: ofertas, postulaciones, verificación de créditos y paneles de empresa y coordinador. |
 | Backend / API REST | Autorización, reglas de negocio, casos de uso y contratos HTTP. | RF01–RF10, DA01, DA04 y DA05. |
-| PostgreSQL | Persistir usuarios, ofertas, postulaciones, convenios y auditoría. | RF01–RF10; motor confirmado en el ADR-003; hoy existen las tablas de empresas y ofertas. |
+| PostgreSQL | Persistir usuarios, ofertas, postulaciones, convenios y auditoría. | RF01–RF10; motor confirmado en el ADR-003. Hoy existen los esquemas `identidad`, `ofertas` y `postulaciones` (migraciones 001 a 012). |
 | SIGA externo | Proveer información académica para validar elegibilidad, si existe acceso autorizado. | RF04, RC02, DA03. |
 
 ### Módulos lógicos dentro del backend
@@ -244,12 +244,51 @@ classDiagram
 | Interfaces de repositorio | RF04–RF06 | DA04, DA06, AC03 |
 | Protección contra duplicados | RF05 | Integridad de datos |
 
+## Despliegue — diagrama de despliegue
+
+**Propósito:** mostrar dónde se ejecuta cada contenedor del C2 en la plataforma real. Los contenedores no cambian; se añaden los servicios que los alojan.
+
+```mermaid
+flowchart LR
+    U["Navegador / estudiante, empresa, coordinador"]
+    CF["Cloudflare / DNS del dominio propio"]
+
+    subgraph Vercel["Vercel (CDN global)"]
+        W["Portal web / React 19 + Vite / archivos estáticos"]
+    end
+
+    subgraph Render["Render (Virginia, plan gratuito)"]
+        A["Backend / API REST / Node.js + Express 5 / monolito modular"]
+    end
+
+    subgraph Neon["Neon (US East 1)"]
+        D[("PostgreSQL 18 / esquemas identidad, ofertas, postulaciones")]
+    end
+
+    U -.->|"resuelve el nombre"| CF
+    CF -.->|"apunta a"| W
+    U -->|"HTTPS"| W
+    U -->|"HTTPS + JSON, token Bearer"| A
+    A -->|"SQL sobre TLS"| D
+```
+
+| Contenedor del C2 | Dónde se ejecuta | Cómo se despliega |
+|---|---|---|
+| Portal web React | Vercel | Automático en cada push a `main`; `VITE_API_URL` se fija al compilar |
+| Backend / API REST | Render | Automático en cada push a `main`; variables `DATABASE_URL`, `JWT_SECRET`, `CORS_ORIGIN` |
+| PostgreSQL | Neon | Migraciones SQL aplicadas a mano antes de fusionar el código que las necesita |
+| SIGA externo | No integrado | Previsto; depende de autorización de la universidad |
+
+Los pasos de puesta en marcha, las variables de entorno, el flujo de integración continua y el uso de un dominio propio están en [despliegue.md](../despliegue.md).
+
+---
+
 ## Decisiones y límites conocidos
 
 1. La arquitectura seleccionada es monolito modular con API REST y Clean Architecture; no se proponen microservicios en esta etapa.
-2. React, Node.js con Express y PostgreSQL están confirmados en el ADR-006 y se verifican con el listado de ofertas; los demás casos de uso siguen sin implementar.
+2. React, Node.js con Express y PostgreSQL están confirmados en el ADR-006 e implementados. Están en funcionamiento usuarios y autenticación, ofertas y postulaciones; siguen sin implementar convenios, notificaciones, integración académica y reportes y auditoría.
 3. La integración con SIGA depende de acceso autorizado; las notificaciones base son internas en PostgreSQL.
-4. El despliegue en nube se documentará en una etapa posterior, tal como se acordó para el proyecto.
+4. El sistema está desplegado en la nube (Vercel, Render y Neon). El diagrama de despliegue siguiente y [despliegue.md](../despliegue.md) lo documentan.
 5. Los diagramas C1–C4 mantienen el mismo límite de sistema, los mismos actores y nombres coherentes entre niveles.
 
 ## Aclaración de los límites del diseño
